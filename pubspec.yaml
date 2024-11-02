@@ -1,0 +1,37 @@
+name: picencrypt
+description: "A new Flutter project."
+
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  get: any
+  get_storage: any
+  image: any
+  path: any
+  path_provider: any
+  file_picker: any
+  crypto: any
+  window_manager: any
+  flutter_easyloading: any
+  isolate: any
+  intl: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^4.0.0
+
+flutter:
+
+  uses-material-design: true
