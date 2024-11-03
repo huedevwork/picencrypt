@@ -15,7 +15,7 @@ import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:picencrypt/pages/service/permission_service.dart';
+import 'package:picencrypt/service/permission_service.dart';
 import 'package:picencrypt/utils/file_type_util.dart';
 import 'package:picencrypt/utils/pic_encrypt_util.dart';
 
