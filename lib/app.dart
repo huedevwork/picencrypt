@@ -18,9 +18,9 @@ class App extends StatelessWidget {
       initialRoute: AppPages.INITIAL,
       getPages: AppPages.routes,
       builder: EasyLoading.init(),
-      translations: TranslationService(),
-      locale: TranslationService.locale,
-      fallbackLocale: TranslationService.fallbackLocale,
+      // translations: TranslationService(),
+      // locale: TranslationService.locale,
+      // fallbackLocale: TranslationService.fallbackLocale,
     );
   }
 }

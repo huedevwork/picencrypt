@@ -6,9 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.picencrypt"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    namespace = "com.hue.picencrypt"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -19,9 +17,12 @@ android {
         jvmTarget = JavaVersion.VERSION_1_8
     }
 
+    compileSdkVersion 35
+    buildToolsVersion '34.0.0'
+    compileSdk 34
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.picencrypt"
+        applicationId = "com.hue.picencrypt"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

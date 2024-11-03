@@ -10,9 +10,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:picencrypt/pages/service/permission_service.dart';
+import 'package:picencrypt/utils/file_type_util.dart';
 import 'package:picencrypt/utils/pic_encrypt_util.dart';
 
 import 'bean/encrypt_type.dart';
@@ -75,15 +79,16 @@ class HomeController extends GetxController {
   }
 
   Future<Directory> _checkDirectoryExists(String dirPath) async {
-    String tempPath = p.join(dirPath, 'Pictures', 'PicEncrypt');
-    final directoryPath = Directory(tempPath);
+    String tempPath = p.join(dirPath, 'PicEncrypt');
+    final tempDirectory = Directory(tempPath);
     // 检查目录是否存在
-    bool exists = await directoryPath.exists();
+    bool exists = await tempDirectory.exists();
     if (exists) {
-      return directoryPath;
+      return tempDirectory;
     } else {
       // 创建目录
-      return await directoryPath.create(recursive: true);
+      Directory directory = await tempDirectory.create(recursive: true);
+      return directory;
     }
   }
 
@@ -112,6 +117,16 @@ class HomeController extends GetxController {
   }
 
   Future<void> onSaveImage() async {
+    if (Platform.isAndroid || Platform.isIOS) {
+      bool results = await PermissionService.requestPermission(
+        context: Get.context!,
+        permission: Permission.storage,
+      );
+      if (!results) {
+        return;
+      }
+    }
+
     DateFormat dateFormat = DateFormat('yyyyMMdd_HHmmss_SSS');
     String formattedDate = dateFormat.format(DateTime.now());
     String fileName = 'PicEncrypt_$formattedDate.jpg';
@@ -139,8 +154,8 @@ class HomeController extends GetxController {
     String? imagePath;
 
     if (Platform.isAndroid) {
-      Directory? directory = await getExternalStorageDirectory();
-      Directory dirPicEncrypt = await _checkDirectoryExists(directory!.path);
+      String picturesPath = '/storage/emulated/0/Pictures';
+      Directory dirPicEncrypt = await _checkDirectoryExists(picturesPath);
       imagePath = p.join(dirPicEncrypt.path, fileName);
     } else if (Platform.isIOS) {
       Directory directory = await getApplicationDocumentsDirectory();
@@ -212,49 +227,83 @@ class HomeController extends GetxController {
   Future<void> onSelectImage() async {
     isPicking.value = true;
 
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-    );
+    try {
+      String? path;
+      if (Platform.isAndroid || Platform.isIOS) {
+        XFile? xFile =
+            await ImagePicker().pickImage(source: ImageSource.gallery);
 
-    isPicking.value = false;
+        isPicking.value = false;
 
-    if (result == null) {
-      _onCustomSnackBar(content: const Text('已取消文件选择'));
-      return;
-    }
+        if (xFile == null) {
+          _onCustomSnackBar(content: const Text('已取消文件选择'));
+          return;
+        }
 
-    await EasyLoading.show(status: 'Loading...');
+        path = xFile.path;
+      } else {
+        FilePickerResult? result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+          allowCompression: false,
+        );
 
-    String? path = result.files.single.path;
-    if (path == null) {
+        isPicking.value = false;
+
+        if (result == null) {
+          _onCustomSnackBar(content: const Text('已取消文件选择'));
+          return;
+        }
+
+        path = result.files.single.path;
+      }
+
+      await EasyLoading.show(status: 'Loading...');
+
+      if (path == null) {
+        await EasyLoading.dismiss();
+
+        _onCustomSnackBar(content: const Text('读取数据失败'));
+        return;
+      }
+
+      bool isGif = await FileTypeUtil.checkFileIsGif(path);
+      if (isGif) {
+        await EasyLoading.dismiss();
+
+        _onCustomSnackBar(content: const Text('GIF类型文件暂不支持'));
+        return;
+      }
+
+      Uint8List bytes = await File(path).readAsBytes();
+      img.Image? decodedImage = img.decodeImage(bytes);
+      if (decodedImage == null) {
+        await EasyLoading.dismiss();
+
+        _onCustomSnackBar(content: const Text('数据解码失败'));
+        return;
+      }
+
+      const int maxImageSize = 4294967296;
+      if (decodedImage.width * decodedImage.height > maxImageSize) {
+        await EasyLoading.dismiss();
+
+        _onCustomSnackBar(content: const Text('图片尺寸过大'));
+
+        return;
+      }
+
+      _image.value = img.Image.from(decodedImage);
+      uiImage.value = img.Image.from(decodedImage);
+
       await EasyLoading.dismiss();
+    } catch (e, s) {
+      isPicking.value = false;
 
-      _onCustomSnackBar(content: const Text('读取数据失败'));
-      return;
+      _onCustomSnackBar(content: const Text('导入图片解码失败'));
+
+      debugPrint('error: ${e.toString()}');
+      debugPrintStack(stackTrace: s);
     }
-
-    Uint8List bytes = await File(path).readAsBytes();
-    img.Image? decodedImage = img.decodeImage(bytes);
-    if (decodedImage == null) {
-      await EasyLoading.dismiss();
-
-      _onCustomSnackBar(content: const Text('数据解码失败'));
-      return;
-    }
-
-    const int SIZE = 4294967296;
-    if (decodedImage.width * decodedImage.height > SIZE) {
-      await EasyLoading.dismiss();
-
-      _onCustomSnackBar(content: const Text('图片尺寸过大'));
-
-      return;
-    }
-
-    _image.value = img.Image.from(decodedImage);
-    uiImage.value = img.Image.from(decodedImage);
-
-    await EasyLoading.dismiss();
   }
 
   void onUpdateEncryptType(EncryptType value) {

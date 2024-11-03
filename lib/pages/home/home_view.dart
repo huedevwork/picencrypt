@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:picencrypt/widgets/ui_image_view.dart';
@@ -25,6 +26,19 @@ class HomePage extends GetView<HomeController> {
               ),
               child: Column(
                 children: [
+                  /// 模式选择
+                  _modeView(c),
+                  const SizedBox(height: 20),
+
+                  /// 密钥
+                  _encryptionView(c),
+                  const SizedBox(height: 20),
+
+                  /// 设置效果
+                  _effectView(c),
+                  const SizedBox(height: 20),
+
+                  /// 图片显示
                   Expanded(
                     child: LayoutBuilder(
                       builder: (_, constraints) {
@@ -41,19 +55,6 @@ class HomePage extends GetView<HomeController> {
                       },
                     ),
                   ),
-                  const SizedBox(height: 20),
-
-                  /// 模式选择
-                  _modeView(c),
-                  const SizedBox(height: 20),
-
-                  /// 密钥
-                  _encryptionView(c),
-                  const SizedBox(height: 20),
-
-                  /// 设置效果
-                  _effectView(c),
-                  const SizedBox(height: 100),
                 ],
               ),
             ),
@@ -149,12 +150,11 @@ class HomePage extends GetView<HomeController> {
   /// 设置效果
   Widget _effectView(HomeController c) {
     int length = 3;
-    final ThemeData theme = Theme.of(Get.context!);
     return DefaultTextStyle(
-      style: TextStyle(color: Colors.black),
+      style: const TextStyle(color: Colors.black),
       child: LayoutBuilder(
         builder: (_, constraints) {
-          double spacing = 10.0;
+          double spacing = 5.0;
           double allInterval = (length - 1) * spacing;
           double width = (constraints.maxWidth - allInterval) / length;
           Size maximumSize = Size.fromWidth(width);
@@ -163,41 +163,56 @@ class HomePage extends GetView<HomeController> {
               spacing: spacing,
               children: [
                 CustomButton(
-                  backgroundColor: const Color(0xff28a745),
                   onPressed: c.uiImage.value == null ? null : c.onObfuscate,
                   maximumSize: maximumSize,
                   child: const Column(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('混淆'),
-                      Text('(Encrypt)'),
+                      AutoSizeText(
+                        '混淆',
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      AutoSizeText(
+                        '(Encrypt)',
+                        style: TextStyle(color: Colors.black),
+                      ),
                     ],
                   ),
                 ),
                 CustomButton(
-                  backgroundColor: const Color(0xffffc107),
                   onPressed: c.uiImage.value == null ? null : c.onDecrypt,
                   maximumSize: maximumSize,
                   child: const Column(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('解混淆'),
-                      Text('(Decrypt)'),
+                      AutoSizeText(
+                        '解混淆',
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      AutoSizeText(
+                        '(Decrypt)',
+                        style: TextStyle(color: Colors.black),
+                      ),
                     ],
                   ),
                 ),
                 CustomButton(
-                  backgroundColor: const Color(0xffdc3545),
                   onPressed: c.uiImage.value == null ? null : c.onReset,
                   maximumSize: maximumSize,
                   child: const Column(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('还原'),
-                      Text('(Reset)'),
+                      AutoSizeText(
+                        '还原',
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      AutoSizeText(
+                        '(Reset)',
+                        style: TextStyle(color: Colors.black),
+                      ),
                     ],
                   ),
                 ),
@@ -231,6 +246,9 @@ class CustomButton extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         maximumSize: maximumSize,
         backgroundColor: backgroundColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(5),
+        ),
       ),
       child: child,
     );

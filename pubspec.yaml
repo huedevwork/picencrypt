@@ -19,12 +19,15 @@ dependencies:
   image: any
   path: any
   path_provider: any
+  image_picker: any
   file_picker: any
   crypto: any
   window_manager: any
   flutter_easyloading: any
   isolate: any
   intl: any
+  permission_handler: any
+  auto_size_text: any
 
 dev_dependencies:
   flutter_test:

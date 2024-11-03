@@ -1,4 +1,4 @@
-package com.example.picencrypt
+package com.hue.picencrypt
 
 import io.flutter.embedding.android.FlutterActivity
 
