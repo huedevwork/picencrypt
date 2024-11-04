@@ -1,8 +1,10 @@
 name: picencrypt
-description: "A new Flutter project."
+description: "PicEncrypt flutter project"
+repository: https://github.com/huedevwork/picencrypt
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
+# 1.0.0 versionName. 1 versionCode
 version: 1.0.0+1
 
 environment:
@@ -28,6 +30,9 @@ dependencies:
   intl: any
   permission_handler: any
   auto_size_text: any
+  url_launcher: any
+  package_info_plus: any
+  device_info_plus: any
 
 dev_dependencies:
   flutter_test:
@@ -35,6 +40,14 @@ dev_dependencies:
 
   flutter_lints: ^4.0.0
 
+  # dart run build_runner build
+  flutter_gen_runner: any
+  build_runner: any
+
 flutter:
 
   uses-material-design: true
+
+  assets:
+    - assets/
+    - assets/images/

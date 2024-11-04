@@ -1,4 +1,4 @@
-# picencrypt
+# PicEncrypt
 
 A new Flutter project.
 

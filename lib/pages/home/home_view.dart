@@ -1,6 +1,7 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:picencrypt/gen/assets.gen.dart';
 import 'package:picencrypt/widgets/ui_image_view.dart';
 
 import 'bean/encrypt_type.dart';
@@ -11,11 +12,9 @@ class HomePage extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    final HomeController c = Get.put(HomeController());
-
     return Obx(() {
       return IgnorePointer(
-        ignoring: c.isPicking.value,
+        ignoring: controller.isPicking.value,
         child: Scaffold(
           resizeToAvoidBottomInset: false,
           body: SafeArea(
@@ -27,16 +26,16 @@ class HomePage extends GetView<HomeController> {
               child: Column(
                 children: [
                   /// 模式选择
-                  _modeView(c),
-                  const SizedBox(height: 20),
+                  _modeView(controller),
+                  const SizedBox(height: 10),
 
                   /// 密钥
-                  _encryptionView(c),
-                  const SizedBox(height: 20),
+                  _encryptionView(controller),
+                  const SizedBox(height: 10),
 
                   /// 设置效果
-                  _effectView(c),
-                  const SizedBox(height: 20),
+                  _effectView(controller),
+                  const SizedBox(height: 10),
 
                   /// 图片显示
                   Expanded(
@@ -49,11 +48,31 @@ class HomePage extends GetView<HomeController> {
                             border: Border.all(color: Colors.black),
                           ),
                           child: Obx(() {
-                            return UiImageView(image: c.uiImage.value);
+                            return UiImageView(image: controller.uiImage.value);
                           }),
                         );
                       },
                     ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      GestureDetector(
+                        onTap: controller.onJumpGithub,
+                        child: Image.asset(
+                          Assets.images.githubMarkWhite.path,
+                          width: 20,
+                          height: 20,
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Version ${controller.packageInfo.value?.version}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -63,21 +82,25 @@ class HomePage extends GetView<HomeController> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Obx(() {
-                return c.uiImage.value == null
+                return controller.uiImage.value == null
                     ? const SizedBox()
                     : FloatingActionButton(
-                        onPressed: () => c.onSaveImage(),
+                        onPressed: () => controller.onSaveImage(),
                         tooltip: '保存图片',
+                        backgroundColor: Colors.white,
+                        enableFeedback: true,
                         child: const Icon(Icons.save),
                       );
               }),
               const SizedBox(width: 20),
               Obx(() {
-                return c.isPicking.value
+                return controller.isPicking.value
                     ? const SizedBox()
                     : FloatingActionButton(
-                        onPressed: () => c.onSelectImage(),
+                        onPressed: () => controller.onSelectImage(),
                         tooltip: '导入图片',
+                        backgroundColor: Colors.white,
+                        enableFeedback: true,
                         child: const Icon(Icons.image),
                       );
               }),

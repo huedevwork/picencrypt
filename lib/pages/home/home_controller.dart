@@ -2,6 +2,7 @@
 
 import 'dart:io';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -12,12 +13,14 @@ import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:picencrypt/service/permission_service.dart';
 import 'package:picencrypt/utils/file_type_util.dart';
 import 'package:picencrypt/utils/pic_encrypt_util.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'bean/encrypt_type.dart';
 import 'bean/input_format_bean.dart';
@@ -57,16 +60,29 @@ class HomeController extends GetxController {
 
   RxBool isPicking = false.obs;
 
-  // @override
-  // void onInit() {
-  //   super.onInit();
-  // }
-  //
-  // @override
-  // void onReady() {}
-  //
-  // @override
-  // void onClose() {}
+  Rx<PackageInfo?> packageInfo = Rx<PackageInfo?>(null);
+
+  @override
+  void onInit() {
+    super.onInit();
+    _getVersionInfo();
+  }
+
+  Future<void> _getVersionInfo() async {
+    PackageInfo info = await PackageInfo.fromPlatform();
+    packageInfo.value = info;
+  }
+
+  void onJumpGithub() {
+    Uri uri = Uri.parse('https://github.com/huedevwork/picencrypt');
+    launchUrl(uri);
+  }
+
+  @override
+  void onReady() {}
+
+  @override
+  void onClose() {}
 
   void _onCustomSnackBar({
     required Widget content,
@@ -118,9 +134,21 @@ class HomeController extends GetxController {
 
   Future<void> onSaveImage() async {
     if (Platform.isAndroid || Platform.isIOS) {
+      Permission permission;
+      if (Platform.isAndroid) {
+        final androidInfo = await DeviceInfoPlugin().androidInfo;
+        if (androidInfo.version.sdkInt <= 32) {
+          permission = Permission.storage;
+        } else {
+          permission = Permission.manageExternalStorage;
+        }
+      } else {
+        permission = Permission.storage;
+      }
+
       bool results = await PermissionService.requestPermission(
         context: Get.context!,
-        permission: Permission.storage,
+        permission: permission,
       );
       if (!results) {
         return;
@@ -178,7 +206,7 @@ class HomeController extends GetxController {
     try {
       await File(imagePath).writeAsBytes(img.encodeJpg(uiImage.value!));
 
-      await EasyLoading.dismiss();
+      EasyLoading.dismiss();
 
       Widget dialog = AlertDialog(
         title: const Text('保存路径'),
@@ -215,7 +243,7 @@ class HomeController extends GetxController {
         _onCustomSnackBar(content: const Text('已复制到剪贴板'));
       }
     } catch (e, s) {
-      await EasyLoading.dismiss();
+      EasyLoading.dismiss();
 
       _onCustomSnackBar(content: const Text('保存文件失败'));
 
@@ -225,6 +253,29 @@ class HomeController extends GetxController {
   }
 
   Future<void> onSelectImage() async {
+    if (Platform.isAndroid || Platform.isIOS) {
+      Permission permission;
+
+      if (Platform.isAndroid) {
+        final androidInfo = await DeviceInfoPlugin().androidInfo;
+        if (androidInfo.version.sdkInt <= 32) {
+          permission = Permission.storage;
+        } else {
+          permission = Permission.photos;
+        }
+      } else {
+        permission = Permission.photos;
+      }
+
+      bool results = await PermissionService.requestPermission(
+        context: Get.context!,
+        permission: permission,
+      );
+      if (!results) {
+        return;
+      }
+    }
+
     isPicking.value = true;
 
     try {
@@ -260,7 +311,7 @@ class HomeController extends GetxController {
       await EasyLoading.show(status: 'Loading...');
 
       if (path == null) {
-        await EasyLoading.dismiss();
+        EasyLoading.dismiss();
 
         _onCustomSnackBar(content: const Text('读取数据失败'));
         return;
@@ -268,7 +319,7 @@ class HomeController extends GetxController {
 
       bool isGif = await FileTypeUtil.checkFileIsGif(path);
       if (isGif) {
-        await EasyLoading.dismiss();
+        EasyLoading.dismiss();
 
         _onCustomSnackBar(content: const Text('GIF类型文件暂不支持'));
         return;
@@ -277,7 +328,7 @@ class HomeController extends GetxController {
       Uint8List bytes = await File(path).readAsBytes();
       img.Image? decodedImage = img.decodeImage(bytes);
       if (decodedImage == null) {
-        await EasyLoading.dismiss();
+        EasyLoading.dismiss();
 
         _onCustomSnackBar(content: const Text('数据解码失败'));
         return;
@@ -285,7 +336,7 @@ class HomeController extends GetxController {
 
       const int maxImageSize = 4294967296;
       if (decodedImage.width * decodedImage.height > maxImageSize) {
-        await EasyLoading.dismiss();
+        EasyLoading.dismiss();
 
         _onCustomSnackBar(content: const Text('图片尺寸过大'));
 
@@ -295,7 +346,7 @@ class HomeController extends GetxController {
       _image.value = img.Image.from(decodedImage);
       uiImage.value = img.Image.from(decodedImage);
 
-      await EasyLoading.dismiss();
+      EasyLoading.dismiss();
     } catch (e, s) {
       isPicking.value = false;
 
@@ -336,7 +387,7 @@ class HomeController extends GetxController {
 
     uiImage.value = img.Image.from(_image.value!);
 
-    await EasyLoading.dismiss();
+    EasyLoading.dismiss();
   }
 
   /// 混淆
@@ -393,7 +444,7 @@ class HomeController extends GetxController {
     );
 
     if (newImage == null) {
-      await EasyLoading.dismiss();
+      EasyLoading.dismiss();
 
       _onCustomSnackBar(content: const Text('加密失败'));
       return;
@@ -401,7 +452,7 @@ class HomeController extends GetxController {
 
     uiImage.value = newImage;
 
-    await EasyLoading.dismiss();
+    EasyLoading.dismiss();
   }
 
   /// 方块混淆 解密
@@ -414,7 +465,7 @@ class HomeController extends GetxController {
     );
 
     if (newImage == null) {
-      await EasyLoading.dismiss();
+      EasyLoading.dismiss();
 
       _onCustomSnackBar(content: const Text('解密失败'));
       return;
@@ -422,7 +473,7 @@ class HomeController extends GetxController {
 
     uiImage.value = newImage;
 
-    await EasyLoading.dismiss();
+    EasyLoading.dismiss();
   }
 
   /// 行像素混淆 加密
@@ -435,7 +486,7 @@ class HomeController extends GetxController {
     );
 
     if (newImage == null) {
-      await EasyLoading.dismiss();
+      EasyLoading.dismiss();
 
       _onCustomSnackBar(content: const Text('加密失败'));
       return;
@@ -443,7 +494,7 @@ class HomeController extends GetxController {
 
     uiImage.value = newImage;
 
-    await EasyLoading.dismiss();
+    EasyLoading.dismiss();
   }
 
   /// 方行像素混淆 解密
@@ -456,7 +507,7 @@ class HomeController extends GetxController {
     );
 
     if (newImage == null) {
-      await EasyLoading.dismiss();
+      EasyLoading.dismiss();
 
       _onCustomSnackBar(content: const Text('解密失败'));
       return;
@@ -464,7 +515,7 @@ class HomeController extends GetxController {
 
     uiImage.value = newImage;
 
-    await EasyLoading.dismiss();
+    EasyLoading.dismiss();
   }
 
   /// 像素混淆 加密
@@ -477,7 +528,7 @@ class HomeController extends GetxController {
     );
 
     if (newImage == null) {
-      await EasyLoading.dismiss();
+      EasyLoading.dismiss();
 
       _onCustomSnackBar(content: const Text('加密失败'));
       return;
@@ -485,7 +536,7 @@ class HomeController extends GetxController {
 
     uiImage.value = newImage;
 
-    await EasyLoading.dismiss();
+    EasyLoading.dismiss();
   }
 
   /// 像素混淆 解密
@@ -498,7 +549,7 @@ class HomeController extends GetxController {
     );
 
     if (newImage == null) {
-      await EasyLoading.dismiss();
+      EasyLoading.dismiss();
 
       _onCustomSnackBar(content: const Text('解密失败'));
       return;
@@ -506,7 +557,7 @@ class HomeController extends GetxController {
 
     uiImage.value = newImage;
 
-    await EasyLoading.dismiss();
+    EasyLoading.dismiss();
   }
 
   /// 兼容PicEncrypt：行模式 加密
@@ -519,7 +570,7 @@ class HomeController extends GetxController {
     );
 
     if (newImage == null) {
-      await EasyLoading.dismiss();
+      EasyLoading.dismiss();
 
       _onCustomSnackBar(content: const Text('加密失败'));
       return;
@@ -527,7 +578,7 @@ class HomeController extends GetxController {
 
     uiImage.value = newImage;
 
-    await EasyLoading.dismiss();
+    EasyLoading.dismiss();
   }
 
   /// 兼容PicEncrypt：行模式 解密
@@ -540,7 +591,7 @@ class HomeController extends GetxController {
     );
 
     if (newImage == null) {
-      await EasyLoading.dismiss();
+      EasyLoading.dismiss();
 
       _onCustomSnackBar(content: const Text('解密失败'));
       return;
@@ -548,7 +599,7 @@ class HomeController extends GetxController {
 
     uiImage.value = newImage;
 
-    await EasyLoading.dismiss();
+    EasyLoading.dismiss();
   }
 
   /// 兼容PicEncrypt：行+列模式 加密
@@ -561,7 +612,7 @@ class HomeController extends GetxController {
     );
 
     if (newImage == null) {
-      await EasyLoading.dismiss();
+      EasyLoading.dismiss();
 
       _onCustomSnackBar(content: const Text('加密失败'));
       return;
@@ -569,7 +620,7 @@ class HomeController extends GetxController {
 
     uiImage.value = newImage;
 
-    await EasyLoading.dismiss();
+    EasyLoading.dismiss();
   }
 
   /// 兼容PicEncrypt：行+列模式 解密
@@ -582,7 +633,7 @@ class HomeController extends GetxController {
     );
 
     if (newImage == null) {
-      await EasyLoading.dismiss();
+      EasyLoading.dismiss();
 
       _onCustomSnackBar(content: const Text('解密失败'));
       return;
@@ -590,6 +641,6 @@ class HomeController extends GetxController {
 
     uiImage.value = newImage;
 
-    await EasyLoading.dismiss();
+    EasyLoading.dismiss();
   }
 }

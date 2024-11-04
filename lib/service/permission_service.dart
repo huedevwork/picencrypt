@@ -7,35 +7,33 @@ class PermissionService {
     required BuildContext context,
     required Permission permission,
   }) async {
-    // 检查当前权限状态
-    var status = await permission.status;
+    PermissionStatus status = await permission.request();
 
     if (status.isGranted) {
-      return true; // 权限已授予
+      return true;
     } else if (status.isDenied) {
-      // 用户拒绝权限，提示用户
       await _showPermissionDialog(context, permission);
-      return false; // 权限被拒绝
+      return false;
     } else if (status.isPermanentlyDenied) {
-      // 权限被永久拒绝，提示用户去设置中修改
       await _showSettingsDialog(context);
       return false; // 权限被永久拒绝
     }
 
     // 请求权限
-    final result = await permission.request();
+    final result = await permission.status;
     return result.isGranted;
   }
 
-  // 显示权限说明对话框
   static Future<void> _showPermissionDialog(
     BuildContext context,
     Permission permission,
   ) async {
-    // 在这里根据权限类型自定义提示信息
-    String message = '';
-    if (permission == Permission.storage) {
-      message = '我们需要存储权限来保存文件。请授予权限。';
+    String message = '请授予应用相应权限';
+    if (permission == Permission.photos) {
+      message = '请授予媒体权限来保存文件。';
+    } else if (permission == Permission.storage ||
+        permission == Permission.manageExternalStorage) {
+      message = '请授予存储权限来保存文件。';
     }
 
     showDialog(
@@ -64,7 +62,6 @@ class PermissionService {
     );
   }
 
-  // 显示设置提示对话框
   static Future<void> _showSettingsDialog(BuildContext context) async {
     showDialog(
       context: context,
