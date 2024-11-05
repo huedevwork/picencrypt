@@ -55,25 +55,9 @@ class HomePage extends GetView<HomeController> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      GestureDetector(
-                        onTap: controller.onJumpGithub,
-                        child: Image.asset(
-                          Assets.images.githubMarkWhite.path,
-                          width: 20,
-                          height: 20,
-                          color: Colors.black,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        'Version ${controller.packageInfo.value?.version}',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
+
+                  /// 版本信息
+                  _versionView(controller),
                 ],
               ),
             ),
@@ -109,6 +93,38 @@ class HomePage extends GetView<HomeController> {
         ),
       );
     });
+  }
+
+  Widget _versionView(HomeController c) {
+    String? version = controller.packageInfo.value?.version;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        GestureDetector(
+          onTap: controller.onJumpGithub,
+          child: Image.asset(
+            Assets.images.githubMarkWhite.path,
+            width: 20,
+            height: 20,
+            color: Colors.black,
+          ),
+        ),
+        Visibility(
+          visible: version != null,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 5),
+            child: GestureDetector(
+              onLongPress: controller.onSetSAFDirectory,
+              child: Text(
+                'Version $version',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   /// 模式选择

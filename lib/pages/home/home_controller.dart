@@ -17,6 +17,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:picencrypt/common/local_storage.dart';
 import 'package:picencrypt/service/permission_service.dart';
 import 'package:picencrypt/utils/file_type_util.dart';
 import 'package:picencrypt/utils/pic_encrypt_util.dart';
@@ -26,6 +27,8 @@ import 'bean/encrypt_type.dart';
 import 'bean/input_format_bean.dart';
 
 class HomeController extends GetxController {
+  final LocalStorage _localStorage = LocalStorage();
+
   // 禁止输入空格
   final _disableSpaceFormat = FilteringTextInputFormatter.deny(RegExp(r'\s'));
 
@@ -73,11 +76,6 @@ class HomeController extends GetxController {
     packageInfo.value = info;
   }
 
-  void onJumpGithub() {
-    Uri uri = Uri.parse('https://github.com/huedevwork/picencrypt');
-    launchUrl(uri);
-  }
-
   @override
   void onReady() {}
 
@@ -94,6 +92,10 @@ class HomeController extends GetxController {
     ));
   }
 
+  Future<String?> _getSAFPath() async {
+    return await FilePicker.platform.getDirectoryPath();
+  }
+
   Future<Directory> _checkDirectoryExists(String dirPath) async {
     String tempPath = p.join(dirPath, 'PicEncrypt');
     final tempDirectory = Directory(tempPath);
@@ -105,6 +107,48 @@ class HomeController extends GetxController {
       // 创建目录
       Directory directory = await tempDirectory.create(recursive: true);
       return directory;
+    }
+  }
+
+  void onJumpGithub() {
+    Uri uri = Uri.parse('https://github.com/huedevwork/picencrypt');
+    launchUrl(uri);
+  }
+
+  Future<void> onSetSAFDirectory() async {
+    if (Platform.isAndroid) {
+      bool? result = await showDialog<bool>(
+        context: Get.context!,
+        builder: (_) {
+          return AlertDialog(
+            title: Text('设置SAF目录'),
+            content: Text('请选一个目录来保存您的文件。'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(_).pop(false);
+                },
+                child: Text('取消'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(_).pop(true);
+                },
+                child: Text('继续'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (result == true) {
+        String? result = await _getSAFPath();
+        if (result == null) {
+          return;
+        }
+
+        await _localStorage.setSafDirectory(result);
+      }
     }
   }
 
@@ -182,9 +226,57 @@ class HomeController extends GetxController {
     String? imagePath;
 
     if (Platform.isAndroid) {
-      String picturesPath = '/storage/emulated/0/Pictures';
-      Directory dirPicEncrypt = await _checkDirectoryExists(picturesPath);
-      imagePath = p.join(dirPicEncrypt.path, fileName);
+      String? getParentPath(String fullPath) {
+        int index = fullPath.indexOf('Android');
+        if (index == -1) {
+          return null;
+        }
+        return fullPath.substring(0, index - 1);
+      }
+
+      String? storagePrefix;
+
+      Directory? directory = await getExternalStorageDirectory();
+      if (directory != null) {
+        storagePrefix = getParentPath(directory.path);
+      }
+
+      if (storagePrefix != null) {
+        String picturesPath = p.join(storagePrefix, 'Pictures');
+        Directory dirPicEncrypt = await _checkDirectoryExists(picturesPath);
+        imagePath = p.join(dirPicEncrypt.path, fileName);
+      } else {
+        String? safPath = _localStorage.getSafDirectory();
+
+        if (safPath != null) {
+          bool exists = await Directory(safPath).exists();
+          if (exists) {
+            imagePath = p.join(safPath, fileName);
+          } else {
+            await _localStorage.box.remove(StoreKeys.safDirectory.name);
+
+            String? result = await _getSAFPath();
+            if (result == null) {
+              _onCustomSnackBar(content: const Text('已取消保存路径选择'));
+              return;
+            }
+
+            await _localStorage.setSafDirectory(result);
+
+            imagePath = p.join(safPath, fileName);
+          }
+        } else {
+          String? result = await _getSAFPath();
+          if (result == null) {
+            _onCustomSnackBar(content: const Text('已取消保存路径选择'));
+            return;
+          }
+
+          await _localStorage.setSafDirectory(result);
+
+          imagePath = p.join(result, fileName);
+        }
+      }
     } else if (Platform.isIOS) {
       Directory directory = await getApplicationDocumentsDirectory();
       Directory dirPicEncrypt = await _checkDirectoryExists(directory.path);
@@ -281,8 +373,9 @@ class HomeController extends GetxController {
     try {
       String? path;
       if (Platform.isAndroid || Platform.isIOS) {
-        XFile? xFile =
-            await ImagePicker().pickImage(source: ImageSource.gallery);
+        XFile? xFile = await ImagePicker().pickImage(
+          source: ImageSource.gallery,
+        );
 
         isPicking.value = false;
 
