@@ -17,9 +17,9 @@ class ComputeUtil {
     if (size == null) {
       int cpuCores = Platform.numberOfProcessors;
       if (cpuCores > 0) {
-        size = cpuCores ~/ 2;
+        size = cpuCores ~/ 4;
       } else {
-        size = 4;
+        size = 2;
       }
     }
     _instance._lb ??= await LoadBalancer.create(size, IsolateRunner.spawn);

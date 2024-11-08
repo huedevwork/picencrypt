@@ -5,7 +5,7 @@ repository: https://github.com/huedevwork/picencrypt
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 # 1.0.0 versionName. 1 versionCode
-version: 1.0.0+1
+version: 1.0.1+1
 
 environment:
   sdk: ^3.5.4
@@ -33,6 +33,7 @@ dependencies:
   url_launcher: any
   package_info_plus: any
   device_info_plus: any
+  photo_view: any
 
 dev_dependencies:
   flutter_test:

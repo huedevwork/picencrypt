@@ -1,37 +1,43 @@
 enum EncryptType {
   /// 方块混淆
-  blockPixelConfusion(1),
+  blockPixelConfusion(value: 1, childDirPath: '1_block_pixel'),
 
   /// 行像素混淆
-  rowPixelConfusion(2),
+  rowPixelConfusion(value: 2, childDirPath: '2_row_pixel'),
 
   /// 像素混淆
-  pixelConfusion(3),
+  pixelConfusion(value: 3, childDirPath: '3_pixel'),
 
   /// 兼容PicEncrypt：行模式
-  picEncryptRowConfusion(4),
+  picEncryptRowConfusion(value: 4, childDirPath: '4_pic_encrypt_row'),
 
   /// 兼容PicEncrypt：行+列模式
-  picEncryptRowColConfusion(5);
+  picEncryptRowColConfusion(value: 5, childDirPath: '5_pic_encrypt_row_col'),
 
-  const EncryptType(this.value);
+  /// 空间填充曲线混淆
+  gilbert2dConfusion(value: 6, childDirPath: '6_gilbert2d');
+
+  const EncryptType({required this.value, required this.childDirPath});
 
   final int value;
+  final String childDirPath;
 }
 
 extension ExtEncryptType on EncryptType {
   String get typeName {
     switch (this) {
       case EncryptType.blockPixelConfusion:
-        return '方块混淆 (Block Confusion)';
+        return '1: 方块混淆 (Block Confusion)';
       case EncryptType.rowPixelConfusion:
-        return '行像素混淆 (Row Pixels Confusion)';
+        return '2: 行像素混淆 (Row Pixels Confusion)';
       case EncryptType.pixelConfusion:
-        return '像素混淆 (Pixels Confusion)';
+        return '3: 像素混淆 (Pixels Confusion)';
       case EncryptType.picEncryptRowConfusion:
-        return '兼容PicEncrypt: 行模式';
+        return '4: 兼容PicEncrypt: 行模式';
       case EncryptType.picEncryptRowColConfusion:
-        return '兼容PicEncrypt: 行+列模式';
+        return '5: 兼容PicEncrypt: 行+列模式';
+      case EncryptType.gilbert2dConfusion:
+        return '6: 空间填充曲线混淆';
     }
   }
 }

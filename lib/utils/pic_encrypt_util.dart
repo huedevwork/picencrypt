@@ -7,6 +7,7 @@ import 'package:picencrypt/utils/row_pixel_confusion/row_pixel_confusion_util.da
 
 import 'block_pixel_confusion/block_pixel_confusion_util.dart';
 import 'compute_util.dart';
+import 'hilbert_curve_confusion/gilbert2d_confusion_util.dart';
 import 'pic_encrypt_row_col_confusion/pic_encrypt_row_col_confusion_util.dart';
 import 'pic_encrypt_row_confusion/pic_encrypt_row_confusion_util.dart';
 import 'pixel_confusion/pixel_confusion_util.dart';
@@ -241,6 +242,27 @@ class PicEncryptUtil {
           return PicEncryptRowColConfusionUtil.decodeImg(
             image: value,
             key: key,
+          );
+        },
+      );
+    } catch (e, s) {
+      debugPrint('error: ${e.toString()}');
+      debugPrintStack(stackTrace: s);
+      return null;
+    }
+  }
+
+  static Future<img.Image?> gilbert2dTransformImage({
+    required img.Image image,
+    required bool isEncrypt,
+  }) async {
+    try {
+      return await ComputeUtil.handle(
+        params: image,
+        entryLogic: (img.Image value) {
+          return Gilbert2dConfusionUtil.transformImage(
+            image: value,
+            isEncrypt: isEncrypt,
           );
         },
       );

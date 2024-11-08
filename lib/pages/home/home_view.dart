@@ -2,6 +2,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:picencrypt/gen/assets.gen.dart';
+import 'package:picencrypt/router/app_pages.dart';
 import 'package:picencrypt/widgets/ui_image_view.dart';
 
 import 'bean/encrypt_type.dart';
@@ -18,47 +19,68 @@ class HomePage extends GetView<HomeController> {
         child: Scaffold(
           resizeToAvoidBottomInset: false,
           body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 10,
-              ),
-              child: Column(
-                children: [
-                  /// 模式选择
-                  _modeView(controller),
-                  const SizedBox(height: 10),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                if (controller.focusNode.value.hasFocus) {
+                  print('tag - 111');
+                  controller.focusNode.value.unfocus();
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                child: Column(
+                  children: [
+                    /// 模式选择
+                    _modeView(controller),
+                    const SizedBox(height: 10),
 
-                  /// 密钥
-                  _encryptionView(controller),
-                  const SizedBox(height: 10),
+                    /// 密钥
+                    _encryptionView(controller),
+                    const SizedBox(height: 20),
 
-                  /// 设置效果
-                  _effectView(controller),
-                  const SizedBox(height: 10),
+                    /// 设置效果
+                    _effectView(controller),
+                    const SizedBox(height: 10),
 
-                  /// 图片显示
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (_, constraints) {
-                        return Container(
-                          width: constraints.maxWidth,
-                          height: constraints.maxHeight,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.black),
-                          ),
-                          child: Obx(() {
-                            return UiImageView(image: controller.uiImage.value);
-                          }),
-                        );
-                      },
+                    /// 图片显示
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (_, constraints) {
+                          return Container(
+                            width: constraints.maxWidth,
+                            height: constraints.maxHeight,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.black),
+                            ),
+                            child: Obx(() {
+                              return GestureDetector(
+                                onTap: controller.uiImage.value == null
+                                    ? null
+                                    : () {
+                                        Get.toNamed(
+                                          AppRoutes.photoView,
+                                          arguments: controller.uiImage.value,
+                                        );
+                                      },
+                                child: UiImageView(
+                                  image: controller.uiImage.value,
+                                ),
+                              );
+                            }),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
+                    const SizedBox(height: 10),
 
-                  /// 版本信息
-                  _versionView(controller),
-                ],
+                    /// 版本信息
+                    _versionView(controller),
+                  ],
+                ),
               ),
             ),
           ),
@@ -69,7 +91,8 @@ class HomePage extends GetView<HomeController> {
                 return controller.uiImage.value == null
                     ? const SizedBox()
                     : FloatingActionButton(
-                        onPressed: () => controller.onSaveImage(),
+                        heroTag: 'onSaveImage',
+                        onPressed: controller.onSaveImage,
                         tooltip: '保存图片',
                         backgroundColor: Colors.white,
                         enableFeedback: true,
@@ -81,7 +104,8 @@ class HomePage extends GetView<HomeController> {
                 return controller.isPicking.value
                     ? const SizedBox()
                     : FloatingActionButton(
-                        onPressed: () => controller.onSelectImage(),
+                        heroTag: 'onSelectImage',
+                        onPressed: controller.onSelectImage,
                         tooltip: '导入图片',
                         backgroundColor: Colors.white,
                         enableFeedback: true,
@@ -146,7 +170,13 @@ class HomePage extends GetView<HomeController> {
                 items: EncryptType.values.map((e) {
                   return DropdownMenuItem<EncryptType>(
                     value: e,
-                    child: Center(child: Text(e.typeName)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: AutoSizeText(e.typeName, maxLines: 1),
+                      ),
+                    ),
                   );
                 }).toList(),
                 onChanged: (EncryptType? value) {
@@ -164,26 +194,36 @@ class HomePage extends GetView<HomeController> {
 
   /// 密钥
   Widget _encryptionView(HomeController c) {
-    return Row(
-      children: [
-        const Text('密钥(Encryption key)：'),
-        Expanded(
-          child: Obx(() {
-            return TextField(
-              controller: c.textController.value,
-              keyboardType: c.inputFormatBean.value.keyboardType,
-              inputFormatters: c.inputFormatBean.value.formats,
-              decoration: InputDecoration(
-                labelText: c.inputFormatBean.value.labelText,
-                border: const OutlineInputBorder(),
+    return Obx(() {
+      return IgnorePointer(
+        ignoring: c.encryptType.value == EncryptType.gilbert2dConfusion,
+        child: Opacity(
+          opacity:
+              c.encryptType.value == EncryptType.gilbert2dConfusion ? 0.3 : 1.0,
+          child: Row(
+            children: [
+              const Text('密钥(Encryption key)：'),
+              Expanded(
+                child: Obx(() {
+                  return TextField(
+                    focusNode: c.focusNode.value,
+                    controller: c.textController.value,
+                    keyboardType: c.inputFormatBean.value.keyboardType,
+                    inputFormatters: c.inputFormatBean.value.formats,
+                    decoration: InputDecoration(
+                      labelText: c.inputFormatBean.value.labelText,
+                      border: const OutlineInputBorder(),
+                    ),
+                    onChanged: c.onValidateInput,
+                    onSubmitted: c.onValidateInput,
+                  );
+                }),
               ),
-              onChanged: c.onValidateInput,
-              onSubmitted: c.onValidateInput,
-            );
-          }),
+            ],
+          ),
         ),
-      ],
-    );
+      );
+    });
   }
 
   /// 设置效果

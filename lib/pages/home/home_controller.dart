@@ -41,7 +41,7 @@ class HomeController extends GetxController {
   // 最大长度限制 - 浮点
   final _lengthFloatRangeFormat = LengthLimitingTextInputFormatter(8);
 
-  RxString _anyStrKey = RxString('');
+  RxString _anyStrKey = RxString('0.666');
   RxDouble _floatRangeKey = RxDouble(0.666);
 
   late Rx<InputFormatBean> inputFormatBean = Rx<InputFormatBean>(
@@ -57,8 +57,9 @@ class HomeController extends GetxController {
   Rx<EncryptType> encryptType = Rx<EncryptType>(
     EncryptType.blockPixelConfusion,
   );
+  Rx<FocusNode> focusNode = Rx<FocusNode>(FocusNode());
   Rx<TextEditingController> textController = Rx<TextEditingController>(
-    TextEditingController(),
+    TextEditingController(text: '0.666'),
   );
 
   RxBool isPicking = false.obs;
@@ -80,7 +81,12 @@ class HomeController extends GetxController {
   void onReady() {}
 
   @override
-  void onClose() {}
+  void onClose() {
+    _image.close();
+    uiImage.close();
+    focusNode.close();
+    textController.close();
+  }
 
   void _onCustomSnackBar({
     required Widget content,
@@ -107,6 +113,38 @@ class HomeController extends GetxController {
       // 创建目录
       Directory directory = await tempDirectory.create(recursive: true);
       return directory;
+    }
+  }
+
+  static Future<void> _delete(Directory directory) async {
+    try {
+      if (await directory.exists()) {
+        final List<FileSystemEntity> children = directory.listSync();
+
+        for (final FileSystemEntity child in children) {
+          if (child is File) {
+            await child.delete();
+          } else if (child is Directory) {
+            await _delete(child);
+
+            await child.delete();
+          }
+        }
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> _clearCache() async {
+    try {
+      Directory cacheDir = await getTemporaryDirectory();
+      if (await cacheDir.exists()) {
+        await _delete(cacheDir);
+      }
+    } catch (e, s) {
+      debugPrint('error: ${e.toString()}');
+      debugPrintStack(stackTrace: s);
     }
   }
 
@@ -419,6 +457,11 @@ class HomeController extends GetxController {
       }
 
       Uint8List bytes = await File(path).readAsBytes();
+
+      if (Platform.isAndroid || Platform.isIOS) {
+        _clearCache();
+      }
+
       img.Image? decodedImage = img.decodeImage(bytes);
       if (decodedImage == null) {
         EasyLoading.dismiss();
@@ -501,6 +544,8 @@ class HomeController extends GetxController {
       case EncryptType.picEncryptRowColConfusion:
         _picEncryptRowColConfusionEncode(_floatRangeKey.value);
         break;
+      case EncryptType.gilbert2dConfusion:
+        _hilbertCurveConfusionEncode();
     }
   }
 
@@ -510,13 +555,13 @@ class HomeController extends GetxController {
 
     switch (encryptType.value) {
       case EncryptType.blockPixelConfusion:
-        _blockPixelConfusionDecode(key);
+        _blockPixelConfusionDecode(_anyStrKey.value);
         break;
       case EncryptType.rowPixelConfusion:
-        _rowPixelConfusionDecode(key);
+        _rowPixelConfusionDecode(_anyStrKey.value);
         break;
       case EncryptType.pixelConfusion:
-        _pixelConfusionDecode(key);
+        _pixelConfusionDecode(_anyStrKey.value);
         break;
       case EncryptType.picEncryptRowConfusion:
         _picEncryptRowConfusionDecode(_floatRangeKey.value);
@@ -524,6 +569,8 @@ class HomeController extends GetxController {
       case EncryptType.picEncryptRowColConfusion:
         _picEncryptRowColConfusionDecode(_floatRangeKey.value);
         break;
+      case EncryptType.gilbert2dConfusion:
+        _hilbertCurveConfusionDecode();
     }
   }
 
@@ -723,6 +770,48 @@ class HomeController extends GetxController {
     img.Image? newImage = await PicEncryptUtil.decodePicEncryptRowColConfusion(
       image: uiImage.value!,
       key: key,
+    );
+
+    if (newImage == null) {
+      EasyLoading.dismiss();
+
+      _onCustomSnackBar(content: const Text('解密失败'));
+      return;
+    }
+
+    uiImage.value = newImage;
+
+    EasyLoading.dismiss();
+  }
+
+  /// 空间填充曲线混淆 加密
+  Future<void> _hilbertCurveConfusionEncode() async {
+    await EasyLoading.show(status: 'Loading...');
+
+    img.Image? newImage = await PicEncryptUtil.gilbert2dTransformImage(
+      image: uiImage.value!,
+      isEncrypt: true,
+    );
+
+    if (newImage == null) {
+      EasyLoading.dismiss();
+
+      _onCustomSnackBar(content: const Text('加密失败'));
+      return;
+    }
+
+    uiImage.value = newImage;
+
+    EasyLoading.dismiss();
+  }
+
+  /// 空间填充曲线混淆 解密
+  Future<void> _hilbertCurveConfusionDecode() async {
+    await EasyLoading.show(status: 'Loading...');
+
+    img.Image? newImage = await PicEncryptUtil.gilbert2dTransformImage(
+      image: uiImage.value!,
+      isEncrypt: false,
     );
 
     if (newImage == null) {
