@@ -11,18 +11,23 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:picencrypt/common/local_storage.dart';
+import 'package:picencrypt/router/app_pages.dart';
 import 'package:picencrypt/service/permission_service.dart';
-import 'package:picencrypt/utils/file_type_util.dart';
+import 'package:picencrypt/service/single_file_services.dart';
+import 'package:picencrypt/utils/cache_manager_util.dart';
+import 'package:picencrypt/utils/file_type_check_util.dart';
 import 'package:picencrypt/utils/pic_encrypt_util.dart';
+import 'package:picencrypt/widgets/process_selection_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../service/folder_services.dart';
+import '../../service/multiple_file_services.dart';
 import 'bean/encrypt_type.dart';
 import 'bean/input_format_bean.dart';
 
@@ -113,38 +118,6 @@ class HomeController extends GetxController {
       // 创建目录
       Directory directory = await tempDirectory.create(recursive: true);
       return directory;
-    }
-  }
-
-  static Future<void> _delete(Directory directory) async {
-    try {
-      if (await directory.exists()) {
-        final List<FileSystemEntity> children = directory.listSync();
-
-        for (final FileSystemEntity child in children) {
-          if (child is File) {
-            await child.delete();
-          } else if (child is Directory) {
-            await _delete(child);
-
-            await child.delete();
-          }
-        }
-      }
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  Future<void> _clearCache() async {
-    try {
-      Directory cacheDir = await getTemporaryDirectory();
-      if (await cacheDir.exists()) {
-        await _delete(cacheDir);
-      }
-    } catch (e, s) {
-      debugPrint('error: ${e.toString()}');
-      debugPrintStack(stackTrace: s);
     }
   }
 
@@ -240,26 +213,6 @@ class HomeController extends GetxController {
     DateFormat dateFormat = DateFormat('yyyyMMdd_HHmmss_SSS');
     String formattedDate = dateFormat.format(DateTime.now());
     String fileName = 'PicEncrypt_$formattedDate.jpg';
-
-    // if (kIsWeb || kIsWasm) {
-    //   try {
-    //     // 处理 Web 文件保存
-    //     Uint8List imageData = img.encodeJpg(uiImage.value!);
-    //     final blob = html.Blob([imageData]);
-    //     final url = html.Url.createObjectUrlFromBlob(blob);
-    //
-    //     html.AnchorElement(href: url)
-    //       ..setAttribute('download', fileName)
-    //       ..click();
-    //
-    //     html.Url.revokeObjectUrl(url);
-    //   } catch (e, s) {
-    //     html.window.alert('保存文件失败');
-    //     debugPrint('error: ${e.toString()}');
-    //     debugPrintStack(stackTrace: s);
-    //   }
-    //   return;
-    // }
 
     String? imagePath;
 
@@ -408,88 +361,102 @@ class HomeController extends GetxController {
 
     isPicking.value = true;
 
-    try {
-      String? path;
-      if (Platform.isAndroid || Platform.isIOS) {
-        XFile? xFile = await ImagePicker().pickImage(
-          source: ImageSource.gallery,
-        );
+    final type = await showModalBottomSheet<ProcessSelectionType>(
+      context: Get.context!,
+      builder: (_) => const ProcessSelectionDialog(),
+    );
 
-        isPicking.value = false;
+    isPicking.value = false;
 
-        if (xFile == null) {
+    if (type == null) {
+      return;
+    }
+
+    if (type == ProcessSelectionType.single) {
+      try {
+        String? path;
+        if (Platform.isAndroid || Platform.isIOS) {
+          path = await singleFileServices();
+        } else {
+          FilePickerResult? result = await FilePicker.platform.pickFiles(
+            type: FileType.image,
+            allowCompression: false,
+            compressionQuality: 100,
+            allowMultiple: false,
+            readSequential: true,
+          );
+
+          path = result?.files.single.path;
+        }
+        print('tag - path: $path');
+        if (path == null) {
           _onCustomSnackBar(content: const Text('已取消文件选择'));
           return;
         }
 
-        path = xFile.path;
-      } else {
-        FilePickerResult? result = await FilePicker.platform.pickFiles(
-          type: FileType.image,
-          allowCompression: false,
+        await EasyLoading.show(status: 'Loading...');
+
+        bool isGif = await FileTypeCheckUtil.checkFileIdentifier(
+          filePath: path,
+          fileSuffixType: FileSuffixType.gif,
         );
+        if (isGif) {
+          EasyLoading.dismiss();
 
-        isPicking.value = false;
-
-        if (result == null) {
-          _onCustomSnackBar(content: const Text('已取消文件选择'));
+          _onCustomSnackBar(content: const Text('GIF类型文件暂不支持'));
           return;
         }
 
-        path = result.files.single.path;
-      }
+        Uint8List bytes = await File(path).readAsBytes();
 
-      await EasyLoading.show(status: 'Loading...');
+        if (Platform.isAndroid || Platform.isIOS) {
+          CacheManagerUtil.clearCache();
+        }
 
-      if (path == null) {
+        img.Image? decodedImage = img.decodeImage(bytes);
+        if (decodedImage == null) {
+          EasyLoading.dismiss();
+
+          _onCustomSnackBar(content: const Text('数据解码失败'));
+          return;
+        }
+
+        const int maxImageSize = 4294967296;
+        if (decodedImage.width * decodedImage.height > maxImageSize) {
+          EasyLoading.dismiss();
+
+          _onCustomSnackBar(content: const Text('图片尺寸过大'));
+
+          return;
+        }
+
+        _image.value = img.Image.from(decodedImage);
+        uiImage.value = img.Image.from(decodedImage);
+
         EasyLoading.dismiss();
+      } catch (e, s) {
+        isPicking.value = false;
 
-        _onCustomSnackBar(content: const Text('读取数据失败'));
+        _onCustomSnackBar(content: const Text('导入图片解码失败'));
+
+        debugPrint('error: ${e.toString()}');
+        debugPrintStack(stackTrace: s);
+      }
+    } else {
+      List<String>? imagePaths;
+      if (type == ProcessSelectionType.multiple) {
+        imagePaths = await multipleFileServices();
+      } else if (type == ProcessSelectionType.folder) {
+        imagePaths = await folderServices();
+      }
+      if (imagePaths == null) {
         return;
       }
 
-      bool isGif = await FileTypeUtil.checkFileIsGif(path);
-      if (isGif) {
-        EasyLoading.dismiss();
-
-        _onCustomSnackBar(content: const Text('GIF类型文件暂不支持'));
-        return;
-      }
-
-      Uint8List bytes = await File(path).readAsBytes();
-
-      if (Platform.isAndroid || Platform.isIOS) {
-        _clearCache();
-      }
-
-      img.Image? decodedImage = img.decodeImage(bytes);
-      if (decodedImage == null) {
-        EasyLoading.dismiss();
-
-        _onCustomSnackBar(content: const Text('数据解码失败'));
-        return;
-      }
-
-      const int maxImageSize = 4294967296;
-      if (decodedImage.width * decodedImage.height > maxImageSize) {
-        EasyLoading.dismiss();
-
-        _onCustomSnackBar(content: const Text('图片尺寸过大'));
-
-        return;
-      }
-
-      _image.value = img.Image.from(decodedImage);
-      uiImage.value = img.Image.from(decodedImage);
-
-      EasyLoading.dismiss();
-    } catch (e, s) {
-      isPicking.value = false;
-
-      _onCustomSnackBar(content: const Text('导入图片解码失败'));
-
-      debugPrint('error: ${e.toString()}');
-      debugPrintStack(stackTrace: s);
+      Get.toNamed(
+        AppRoutes.processingImages,
+        arguments: imagePaths,
+      );
     }
   }
 
@@ -519,6 +486,10 @@ class HomeController extends GetxController {
 
   /// 还原
   Future<void> onReset() async {
+    if (_image.value == null) {
+      return;
+    }
+
     await EasyLoading.show(status: 'Loading...');
 
     uiImage.value = img.Image.from(_image.value!);
@@ -527,7 +498,11 @@ class HomeController extends GetxController {
   }
 
   /// 混淆
-  void onObfuscate() {
+  void onEncrypt() {
+    if (_image.value == null) {
+      return;
+    }
+
     switch (encryptType.value) {
       case EncryptType.blockPixelConfusion:
         _blockPixelConfusionEncode(_anyStrKey.value);
@@ -551,7 +526,9 @@ class HomeController extends GetxController {
 
   /// 解混淆
   void onDecrypt() {
-    String key = textController.value.text;
+    if (_image.value == null) {
+      return;
+    }
 
     switch (encryptType.value) {
       case EncryptType.blockPixelConfusion:

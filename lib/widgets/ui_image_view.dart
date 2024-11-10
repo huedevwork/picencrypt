@@ -22,21 +22,21 @@ class UiImageView extends StatelessWidget {
       );
     } else {
       return LayoutBuilder(
-        builder: (_, cot2) {
+        builder: (_, cot) {
           double uiImgWidth;
           double uiImgHeight;
 
           final aspectRatio = image!.width / image!.height;
-          if (cot2.maxWidth / cot2.maxHeight > aspectRatio) {
-            uiImgWidth = cot2.maxHeight * aspectRatio;
-            uiImgHeight = cot2.maxHeight;
-          } else if (cot2.maxWidth / cot2.maxHeight < aspectRatio) {
-            uiImgWidth = cot2.maxWidth;
-            uiImgHeight = cot2.maxWidth / aspectRatio;
+          if (cot.maxWidth / cot.maxHeight > aspectRatio) {
+            uiImgWidth = cot.maxHeight * aspectRatio;
+            uiImgHeight = cot.maxHeight;
+          } else if (cot.maxWidth / cot.maxHeight < aspectRatio) {
+            uiImgWidth = cot.maxWidth;
+            uiImgHeight = cot.maxWidth / aspectRatio;
           } else {
             final min = math.min(
-              cot2.maxWidth,
-              cot2.maxHeight,
+              cot.maxWidth,
+              cot.maxHeight,
             );
             uiImgWidth = min;
             uiImgHeight = min;
