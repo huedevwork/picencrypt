@@ -1,5 +1,3 @@
-// import 'dart:html' as html;
-
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
@@ -11,16 +9,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
-import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:picencrypt/common/local_storage.dart';
 import 'package:picencrypt/router/app_pages.dart';
+import 'package:picencrypt/service/open_platform_image_view.dart';
 import 'package:picencrypt/service/permission_service.dart';
 import 'package:picencrypt/service/single_file_services.dart';
 import 'package:picencrypt/utils/cache_manager_util.dart';
+import 'package:picencrypt/utils/create_file_name_util.dart';
 import 'package:picencrypt/utils/file_type_check_util.dart';
 import 'package:picencrypt/utils/pic_encrypt_util.dart';
 import 'package:picencrypt/widgets/process_selection_dialog.dart';
@@ -121,6 +120,17 @@ class HomeController extends GetxController {
     }
   }
 
+  void onOpenExamineImage() {
+    if (Platform.isAndroid || Platform.isIOS) {
+      Get.toNamed(
+        AppRoutes.photoView,
+        arguments: uiImage.value,
+      );
+    } else {
+      openPlatformImageService(uiImage.value!);
+    }
+  }
+
   void onJumpGithub() {
     Uri uri = Uri.parse('https://github.com/huedevwork/picencrypt');
     launchUrl(uri);
@@ -132,20 +142,20 @@ class HomeController extends GetxController {
         context: Get.context!,
         builder: (_) {
           return AlertDialog(
-            title: Text('设置SAF目录'),
-            content: Text('请选一个目录来保存您的文件。'),
+            title: const Text('设置SAF目录'),
+            content: const Text('请选一个目录来保存您的文件。'),
             actions: [
               TextButton(
                 onPressed: () {
                   Navigator.of(_).pop(false);
                 },
-                child: Text('取消'),
+                child: const Text('取消'),
               ),
               TextButton(
                 onPressed: () {
                   Navigator.of(_).pop(true);
                 },
-                child: Text('继续'),
+                child: const Text('继续'),
               ),
             ],
           );
@@ -210,9 +220,8 @@ class HomeController extends GetxController {
       }
     }
 
-    DateFormat dateFormat = DateFormat('yyyyMMdd_HHmmss_SSS');
-    String formattedDate = dateFormat.format(DateTime.now());
-    String fileName = 'PicEncrypt_$formattedDate.jpg';
+    String timeName = CreateFileNameUtil.timeName();
+    String fileName = 'PicEncrypt_$timeName.jpg';
 
     String? imagePath;
 
@@ -366,9 +375,8 @@ class HomeController extends GetxController {
       builder: (_) => const ProcessSelectionDialog(),
     );
 
-    isPicking.value = false;
-
     if (type == null) {
+      isPicking.value = false;
       return;
     }
 
@@ -384,11 +392,14 @@ class HomeController extends GetxController {
             compressionQuality: 100,
             allowMultiple: false,
             readSequential: true,
+            lockParentWindow: true,
           );
 
           path = result?.files.single.path;
         }
-        print('tag - path: $path');
+
+        isPicking.value = false;
+
         if (path == null) {
           _onCustomSnackBar(content: const Text('已取消文件选择'));
           return;
@@ -443,20 +454,32 @@ class HomeController extends GetxController {
         debugPrintStack(stackTrace: s);
       }
     } else {
-      List<String>? imagePaths;
-      if (type == ProcessSelectionType.multiple) {
-        imagePaths = await multipleFileServices();
-      } else if (type == ProcessSelectionType.folder) {
-        imagePaths = await folderServices();
-      }
-      if (imagePaths == null) {
-        return;
-      }
+      try {
+        List<String>? imagePaths;
+        if (type == ProcessSelectionType.multiple) {
+          imagePaths = await multipleFileServices();
+        } else if (type == ProcessSelectionType.folder) {
+          imagePaths = await folderServices();
+        }
 
-      Get.toNamed(
-        AppRoutes.processingImages,
-        arguments: imagePaths,
-      );
+        isPicking.value = false;
+
+        if (imagePaths == null) {
+          return;
+        }
+
+        Get.toNamed(
+          AppRoutes.processingImages,
+          arguments: imagePaths,
+        );
+      } catch(e, s) {
+        isPicking.value = false;
+
+        _onCustomSnackBar(content: const Text('导入图片解码失败'));
+
+        debugPrint('error: ${e.toString()}');
+        debugPrintStack(stackTrace: s);
+      }
     }
   }
 

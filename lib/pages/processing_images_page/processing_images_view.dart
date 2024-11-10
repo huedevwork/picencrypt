@@ -4,7 +4,6 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:picencrypt/pages/home_page/bean/encrypt_type.dart';
-import 'package:picencrypt/router/app_pages.dart';
 import 'package:picencrypt/widgets/encrypt_button_widget.dart';
 import 'package:picencrypt/widgets/encrypt_input_widget.dart';
 import 'package:picencrypt/widgets/encrypt_mode_widget.dart';
@@ -35,7 +34,7 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
                 Icon(Icons.arrow_back),
                 AutoSizeText(
                   '返回',
-                  style: TextStyle(color: Colors.black),
+                  style: TextStyle(color: Colors.black, fontSize: 12),
                   maxLines: 1,
                 ),
               ],
@@ -55,7 +54,7 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
                 Icon(Icons.save),
                 AutoSizeText(
                   '保存列表',
-                  style: TextStyle(color: Colors.black),
+                  style: TextStyle(color: Colors.black, fontSize: 12),
                   maxLines: 1,
                 ),
               ],
@@ -74,44 +73,48 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
                     vertical: 10,
                   ),
                   child: CustomScrollView(
+                    physics: const BouncingScrollPhysics(),
                     slivers: [
                       SliverAppBar(
                         snap: true,
                         stretch: true,
                         floating: true,
                         expandedHeight: 180.0,
-                        flexibleSpace: FlexibleSpaceBar(
-                          background: Column(
-                            children: [
-                              /// 模式选择
-                              EncryptModeWidget(
-                                encryptType: controller.encryptType.value,
-                                onChanged: (value) {
-                                  controller.onUpdateAllEncryptType(value);
-                                },
-                              ),
-                              const SizedBox(height: 10),
+                        flexibleSpace: Material(
+                          color: Theme.of(Get.context!).scaffoldBackgroundColor,
+                          child: FlexibleSpaceBar(
+                            background: Column(
+                              children: [
+                                /// 模式选择
+                                EncryptModeWidget(
+                                  encryptType: controller.encryptType.value,
+                                  onChanged: (value) {
+                                    controller.onUpdateAllEncryptType(value);
+                                  },
+                                ),
+                                const SizedBox(height: 10),
 
-                              /// 密钥
-                              EncryptInputWidget(
-                                encryptType: controller.encryptType.value,
-                                focusNode: controller.focusNode.value,
-                                controller: controller.textController.value,
-                                inputFormatBean:
-                                    controller.inputFormatBean.value,
-                                onChanged: controller.onAllValidateInput,
-                                onSubmitted: controller.onAllValidateInput,
-                              ),
-                              const SizedBox(height: 10),
+                                /// 密钥
+                                EncryptInputWidget(
+                                  encryptType: controller.encryptType.value,
+                                  focusNode: controller.focusNode.value,
+                                  controller: controller.textController.value,
+                                  inputFormatBean:
+                                      controller.inputFormatBean.value,
+                                  onChanged: controller.onAllValidateInput,
+                                  onSubmitted: controller.onAllValidateInput,
+                                ),
+                                const SizedBox(height: 10),
 
-                              /// 设置效果
-                              EncryptButtonWidget(
-                                ignoring: false,
-                                onEncrypt: controller.onAllEncrypt,
-                                onDecrypt: controller.onAllDecrypt,
-                                onReset: controller.onAllReset,
-                              ),
-                            ],
+                                /// 设置效果
+                                EncryptButtonWidget(
+                                  ignoring: false,
+                                  onEncrypt: controller.onAllEncrypt,
+                                  onDecrypt: controller.onAllDecrypt,
+                                  onReset: controller.onAllReset,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         automaticallyImplyLeading: false,
@@ -144,6 +147,9 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
                                 onSave: () {
                                   controller.onChildSave(index);
                                 },
+                                onOpenImage: () {
+                                  controller.onOpenExamineImage(index);
+                                },
                               ),
                             );
                           },
@@ -169,6 +175,7 @@ class ImageView extends StatelessWidget {
     required this.onDecrypt,
     required this.onReset,
     required this.onSave,
+    this.onOpenImage,
   });
 
   final EncryptImageBean item;
@@ -178,6 +185,7 @@ class ImageView extends StatelessWidget {
   final VoidCallback onDecrypt;
   final VoidCallback onReset;
   final VoidCallback onSave;
+  final VoidCallback? onOpenImage;
 
   @override
   Widget build(BuildContext context) {
@@ -213,12 +221,7 @@ class ImageView extends StatelessWidget {
                 }
 
                 return GestureDetector(
-                  onTap: () {
-                    Get.toNamed(
-                      AppRoutes.photoView,
-                      arguments: item.image,
-                    );
-                  },
+                  onTap: onOpenImage,
                   child: Image.memory(
                     item.renderingData,
                     width: uiImgWidth,

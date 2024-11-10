@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'package:path/path.dart' as p;
+
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:picencrypt/common/local_storage.dart';
 
@@ -13,6 +13,7 @@ Future<List<String>?> multipleFileServices() async {
       compressionQuality: 100,
       allowMultiple: true,
       readSequential: true,
+      lockParentWindow: true,
     );
     if (result == null) {
       return null;
@@ -22,7 +23,6 @@ Future<List<String>?> multipleFileServices() async {
 
     for (String? str in result.paths) {
       if (str != null) {
-        debugPrint('tag - multiple: $str');
         imageFiles.add(str);
       }
     }

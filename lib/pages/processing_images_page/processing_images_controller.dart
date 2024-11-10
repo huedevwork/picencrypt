@@ -8,15 +8,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
-import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:picencrypt/common/local_storage.dart';
 import 'package:picencrypt/pages/home_page/bean/encrypt_type.dart';
 import 'package:picencrypt/pages/home_page/bean/input_format_bean.dart';
+import 'package:picencrypt/router/app_pages.dart';
+import 'package:picencrypt/service/open_platform_image_view.dart';
 import 'package:picencrypt/service/permission_service.dart';
 import 'package:picencrypt/utils/cache_manager_util.dart';
+import 'package:picencrypt/utils/compute_util.dart';
+import 'package:picencrypt/utils/create_file_name_util.dart';
 import 'package:picencrypt/utils/pic_encrypt_util.dart';
 import 'package:picencrypt/widgets/dialog_mode_select.dart';
 import 'package:picencrypt/widgets/dialog_textField.dart';
@@ -68,44 +71,86 @@ class ProcessingImagesController extends GetxController {
   }
 
   Future<void> _onInit() async {
-    List<img.Image> tempList = [];
-
     List<String> imagePaths = Get.arguments;
 
-    for (final path in imagePaths) {
+    List<Uint8List> dataList = [];
+    for (String path in imagePaths) {
       Uint8List bytes = await File(path).readAsBytes();
-      img.Image? decodedImage = img.decodeImage(bytes);
-      if (decodedImage == null) {
-        continue;
-      }
-      tempList.add(img.Image.from(decodedImage));
+      dataList.add(bytes);
     }
 
-    List<EncryptImageBean> list = tempList.map((image) {
-      return EncryptImageBean(
+    List<img.Image> imageList = await ComputeUtil.handle(
+      params: dataList,
+      entryLogic: (tempList) {
+        List<img.Image> imageList = [];
+        for (Uint8List bytes in tempList) {
+          img.Image? decodedImage = img.decodeImage(bytes);
+          if (decodedImage == null) {
+            continue;
+          }
+          imageList.add(img.Image.from(decodedImage));
+        }
+        return imageList;
+      },
+    );
+
+    List<Uint8List> renderingDataList = await ComputeUtil.handle(
+      params: imageList,
+      entryLogic: (tempList) {
+        return tempList.map((image) {
+          return Uint8List.fromList(img.encodePng(image));
+        }).toList();
+      },
+    );
+
+    List<EncryptImageBean> list = [];
+    for (int i = 0; i < imageList.length; i++) {
+      img.Image image = imageList[i];
+      EncryptImageBean item = EncryptImageBean(
         image: image,
-        renderingData: Uint8List.fromList(img.encodePng(image)),
+        renderingData: renderingDataList[i],
         inputFormatBean: InputFormatBean(
           formats: [_disableSpaceFormat, _lengthAnyStrFormat],
           keyboardType: TextInputType.text,
           labelText: '可为任意字符串(Any String)',
         ),
       );
-    }).toList();
+      list.add(item);
+    }
 
     uiImages.value = List.from(list);
     _images.value = List.from(list);
 
     init.value = false;
 
-    CacheManagerUtil.clearCache();
+    if (Platform.isAndroid || Platform.isIOS) {
+      CacheManagerUtil.clearCache();
+    }
   }
 
   @override
   void onReady() {}
 
   @override
-  void onClose() {}
+  void onClose() {
+    _images.close();
+    uiImages.close();
+    focusNode.close();
+    textController.close();
+  }
+
+  void onOpenExamineImage(int index) {
+    img.Image image = uiImages.value[index].image;
+
+    if (Platform.isAndroid || Platform.isIOS) {
+      Get.toNamed(
+        AppRoutes.photoView,
+        arguments: image,
+      );
+    } else {
+      openPlatformImageService(image);
+    }
+  }
 
   void onUpdateAllEncryptType(EncryptType value) {
     bool value1 = EncryptType.picEncryptRowConfusion == value;
@@ -242,9 +287,8 @@ class ProcessingImagesController extends GetxController {
       }
     }
 
-    DateFormat dateFormat = DateFormat('yyyyMMdd_HHmmss_SSS');
-    String formattedDate = dateFormat.format(DateTime.now());
-    String fileName = 'PicEncrypt_$formattedDate.jpg';
+    String timeName = CreateFileNameUtil.timeName();
+    String fileName = 'PicEncrypt_$timeName.jpg';
 
     String? imagePath;
 
@@ -318,20 +362,27 @@ class ProcessingImagesController extends GetxController {
 
     await EasyLoading.show(status: 'Loading...');
 
-    List<String> failedList = [];
+    List<EncryptImageBean> tempImages = List.from(uiImages.value);
 
-    for (int i = 0; i < uiImages.value.length; i++) {
-      EncryptImageBean item = uiImages.value[i];
+    List<Uint8List> dataList = await ComputeUtil.handle(
+      params: tempImages,
+      entryLogic: (tempList) {
+        return tempList.map((e) => img.encodeJpg(e.image)).toList();
+      },
+    );
+
+    List<String> failedList = [];
+    for (int i = 0; i < dataList.length; i++) {
+      Uint8List data = dataList[i];
 
       try {
         String dir = p.dirname(imagePath);
-        String extension = p.extension(imagePath);
         String baseName = p.basenameWithoutExtension(imagePath);
 
         String newBaseName = '${baseName}_$i';
-        String newImagePath = p.join(dir, '$newBaseName$extension');
+        String newImagePath = p.join(dir, '$newBaseName.jpg');
 
-        await File(newImagePath).writeAsBytes(img.encodeJpg(item.image));
+        await File(newImagePath).writeAsBytes(data);
       } catch (e) {
         failedList.add(imagePath);
         continue;
@@ -340,8 +391,9 @@ class ProcessingImagesController extends GetxController {
 
     EasyLoading.dismiss();
 
+    _onCustomSnackBar(content: const Text('保存成功'));
+
     if (failedList.isEmpty) {
-      _onCustomSnackBar(content: const Text('保存成功'));
       return;
     }
 
@@ -420,9 +472,16 @@ class ProcessingImagesController extends GetxController {
         }
 
         if (image != null) {
+          Uint8List renderingImage = await ComputeUtil.handle(
+            params: image,
+            entryLogic: (data) {
+              return Uint8List.fromList(img.encodePng(data));
+            },
+          );
+
           tempList[i] = tempList[i].copyWith(
             image: image,
-            renderingImage: Uint8List.fromList(img.encodePng(image)),
+            renderingImage: renderingImage,
           );
         }
       }
@@ -464,9 +523,16 @@ class ProcessingImagesController extends GetxController {
         }
 
         if (image != null) {
+          Uint8List renderingImage = await ComputeUtil.handle(
+            params: image,
+            entryLogic: (data) {
+              return Uint8List.fromList(img.encodePng(data));
+            },
+          );
+
           tempList[i] = tempList[i].copyWith(
             image: image,
-            renderingImage: Uint8List.fromList(img.encodePng(image)),
+            renderingImage: renderingImage,
           );
         }
       }
@@ -505,9 +571,8 @@ class ProcessingImagesController extends GetxController {
       }
     }
 
-    DateFormat dateFormat = DateFormat('yyyyMMdd_HHmmss_SSS');
-    String formattedDate = dateFormat.format(DateTime.now());
-    String fileName = 'PicEncrypt_$formattedDate.jpg';
+    String timeName = CreateFileNameUtil.timeName();
+    String fileName = 'PicEncrypt_$timeName.jpg';
 
     String? imagePath;
 
@@ -669,9 +734,16 @@ class ProcessingImagesController extends GetxController {
     if (image != null) {
       List<EncryptImageBean> tempList = List.from(uiImages.value);
 
+      Uint8List renderingImage = await ComputeUtil.handle(
+        params: image,
+        entryLogic: (data) {
+          return Uint8List.fromList(img.encodePng(data));
+        },
+      );
+
       tempList[index] = tempList[index].copyWith(
         image: image,
-        renderingImage: Uint8List.fromList(img.encodePng(image)),
+        renderingImage: renderingImage,
       );
 
       uiImages.value = List.from(tempList);
@@ -706,9 +778,16 @@ class ProcessingImagesController extends GetxController {
     if (image != null) {
       List<EncryptImageBean> tempList = List.from(uiImages.value);
 
+      Uint8List renderingImage = await ComputeUtil.handle(
+        params: image,
+        entryLogic: (data) {
+          return Uint8List.fromList(img.encodePng(data));
+        },
+      );
+
       tempList[index] = tempList[index].copyWith(
         image: image,
-        renderingImage: Uint8List.fromList(img.encodePng(image)),
+        renderingImage: renderingImage,
       );
 
       uiImages.value = List.from(tempList);
@@ -819,8 +898,6 @@ class ProcessingImagesController extends GetxController {
   Future<img.Image?> _hilbertCurveConfusionEncode(
     EncryptImageBean item,
   ) async {
-    await EasyLoading.show(status: 'Loading...');
-
     return await PicEncryptUtil.gilbert2dTransformImage(
       image: item.image,
       isEncrypt: true,
@@ -844,12 +921,10 @@ class ProcessingImagesController extends GetxController {
   Future<Directory> _checkDirectoryExists(String dirPath) async {
     String tempPath = p.join(dirPath, 'PicEncrypt');
     final tempDirectory = Directory(tempPath);
-    // 检查目录是否存在
     bool exists = await tempDirectory.exists();
     if (exists) {
       return tempDirectory;
     } else {
-      // 创建目录
       Directory directory = await tempDirectory.create(recursive: true);
       return directory;
     }

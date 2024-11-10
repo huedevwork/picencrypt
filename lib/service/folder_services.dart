@@ -6,7 +6,9 @@ import 'package:picencrypt/utils/file_type_check_util.dart';
 
 Future<List<String>?> folderServices() async {
   try {
-    String? directoryPath = await FilePicker.platform.getDirectoryPath();
+    String? directoryPath = await FilePicker.platform.getDirectoryPath(
+      lockParentWindow: true,
+    );
     if (directoryPath == null) {
       return null;
     }

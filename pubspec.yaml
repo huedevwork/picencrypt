@@ -34,6 +34,7 @@ dependencies:
   package_info_plus: any
   device_info_plus: any
   photo_view: any
+  uuid: any
 
 dev_dependencies:
   flutter_test:

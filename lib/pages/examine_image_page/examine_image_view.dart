@@ -29,9 +29,18 @@ class ExamineImagePage extends GetView<ExamineImageController> {
                 onTap: Get.back,
                 child: Container(
                   padding: const EdgeInsets.all(5.0),
-                  decoration: const BoxDecoration(
+                  decoration:  BoxDecoration(
                     color: Colors.white24,
                     shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white12),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        offset: Offset(1, 1),
+                        blurRadius: 2,
+                        spreadRadius: 1,
+                      ),
+                    ],
                   ),
                   child: const Icon(
                     Icons.close,

@@ -40,7 +40,8 @@ class _DialogTextFieldState extends State<DialogTextField> {
     inputFormatBean = widget.item.inputFormatBean;
 
     bool value1 = widget.item.encryptType == EncryptType.picEncryptRowConfusion;
-    bool value2 = widget.item.encryptType == EncryptType.picEncryptRowColConfusion;
+    bool value2 =
+        widget.item.encryptType == EncryptType.picEncryptRowColConfusion;
     if (value1 || value2) {
       inputFormatBean = InputFormatBean(
         formats: [_disableSpaceFormat, _floatFormat, _lengthFloatRangeFormat],
@@ -63,8 +64,10 @@ class _DialogTextFieldState extends State<DialogTextField> {
 
   /// 检查输入密钥条件
   void onValidateInput(String value) {
-    bool value1 = widget.item.encryptType.value == EncryptType.picEncryptRowConfusion;
-    bool value2 = widget.item.encryptType.value == EncryptType.picEncryptRowColConfusion;
+    bool value1 =
+        widget.item.encryptType.value == EncryptType.picEncryptRowConfusion;
+    bool value2 =
+        widget.item.encryptType.value == EncryptType.picEncryptRowColConfusion;
     if (value1 || value2) {
       if (value.isEmpty) {
         _floatRangeKey = 0.666;
@@ -103,7 +106,8 @@ class _DialogTextFieldState extends State<DialogTextField> {
             const SizedBox(height: 10),
             OutlinedButton(
               onPressed: () {
-                Get.back(result: widget.item.copyWith(
+                Get.back(
+                    result: widget.item.copyWith(
                   inputFormatBean: inputFormatBean,
                   anyStrKey: _anyStrKey,
                   floatRangeKey: _floatRangeKey,
