@@ -358,7 +358,11 @@ class ProcessingImagesController extends GetxController {
       Directory dirPicEncrypt = await _checkDirectoryExists(directory.path);
       imagePath = p.join(dirPicEncrypt.path, fileName);
     } else {
-      String? savePath = await FilePicker.platform.getDirectoryPath();
+      final downloadsDir = await getDownloadsDirectory();
+
+      String? savePath = await FilePicker.platform.getDirectoryPath(
+        initialDirectory: downloadsDir?.path,
+      );
       if (savePath != null) {
         imagePath = p.join(savePath, fileName);
       }
@@ -648,7 +652,11 @@ class ProcessingImagesController extends GetxController {
       Directory dirPicEncrypt = await _checkDirectoryExists(directory.path);
       imagePath = p.join(dirPicEncrypt.path, fileName);
     } else {
-      String? savePath = await FilePicker.platform.getDirectoryPath();
+      final downloadsDir = await getDownloadsDirectory();
+
+      String? savePath = await FilePicker.platform.getDirectoryPath(
+        initialDirectory: downloadsDir?.path,
+      );
       if (savePath != null) {
         imagePath = p.join(savePath, fileName);
       }
