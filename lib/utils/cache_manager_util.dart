@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 class CacheManagerUtil {
@@ -10,9 +9,8 @@ class CacheManagerUtil {
       if (await cacheDir.exists()) {
         await _delete(cacheDir);
       }
-    } catch (e, s) {
-      debugPrint('error: ${e.toString()}');
-      debugPrintStack(stackTrace: s);
+    } catch (e) {
+      rethrow;
     }
   }
 

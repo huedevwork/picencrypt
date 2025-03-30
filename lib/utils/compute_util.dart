@@ -14,14 +14,10 @@ class ComputeUtil {
     required R params,
     required T Function(R) entryLogic,
   }) async {
-    if (size == null) {
-      int cpuCores = Platform.numberOfProcessors;
-      if (cpuCores > 0) {
-        size = cpuCores ~/ 4;
-      } else {
-        size = 2;
-      }
-    }
+    int cpuCores = Platform.numberOfProcessors;
+    size ??= 1;
+    int upperBound = (cpuCores - 2).clamp(1, double.infinity).toInt();
+    size = size.clamp(1, upperBound);
     _instance._lb ??= await LoadBalancer.create(size, IsolateRunner.spawn);
     T result = await _instance._lb!.run<T, R>(entryLogic, params);
     return result;

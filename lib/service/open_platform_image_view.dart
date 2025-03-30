@@ -1,21 +1,35 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:picencrypt/utils/compute_util.dart';
 import 'package:picencrypt/utils/create_file_name_util.dart';
+import 'package:picencrypt/utils/logger_utils.dart';
 
 Future<void> openPlatformImageService(img.Image image) async {
+  final LoggerUtils logger = LoggerUtils();
+
+  await EasyLoading.show(status: 'Loading...');
+
   try {
+    final imageData = await ComputeUtil.handle(
+      params: image,
+      entryLogic: (path) => img.encodeJpg(image),
+    );
+
     String timeName = CreateFileNameUtil.timeName();
 
     final directory = await getTemporaryDirectory();
-    final filePath = p.join(directory.path, 'temp_image_$timeName.png');
+    final filePath = p.join(directory.path, 'temp_image_$timeName.jpg');
 
     final file = File(filePath);
-    await file.writeAsBytes(img.encodeJpg(image));
+    await file.writeAsBytes(imageData);
+
+    EasyLoading.dismiss();
 
     if (Platform.isWindows) {
       await Process.start('explorer', [filePath]);
@@ -24,6 +38,8 @@ Future<void> openPlatformImageService(img.Image image) async {
     } else if (Platform.isLinux) {
       await Process.run('xdg-open', [filePath]);
     } else {
+      EasyLoading.dismiss();
+
       showDialog(
         context: Get.context!,
         builder: (_) {
@@ -39,11 +55,10 @@ Future<void> openPlatformImageService(img.Image image) async {
         },
       );
 
-      throw UnsupportedError('Unsupported platform');
+      logger.w('Unsupported platform');
     }
   } catch (e, s) {
-    debugPrint('Error opening image: $e');
-    debugPrintStack(stackTrace: s);
+    EasyLoading.dismiss();
 
     showDialog(
       context: Get.context!,
@@ -60,5 +75,7 @@ Future<void> openPlatformImageService(img.Image image) async {
         );
       },
     );
+
+    logger.e('打开图片出错', error: e, stackTrace: s);
   }
 }

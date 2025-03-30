@@ -163,6 +163,7 @@ class HomePage extends GetView<HomeController> {
         children: [
           GestureDetector(
             onTap: controller.onJumpGithub,
+            onLongPress: controller.onExportLogs,
             child: Image.asset(
               Assets.images.githubMarkWhite.path,
               width: 20,
@@ -175,7 +176,7 @@ class HomePage extends GetView<HomeController> {
             child: Padding(
               padding: const EdgeInsets.only(left: 5),
               child: GestureDetector(
-                onLongPress: controller.onSetSAFDirectory,
+                // onLongPress: controller.onSetSAFDirectory,
                 child: Text(
                   'Version $version',
                   style: const TextStyle(fontSize: 12),

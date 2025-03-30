@@ -23,7 +23,7 @@ class EncryptImageBean {
 
   EncryptImageBean copyWith({
     img.Image? image,
-    Uint8List? renderingImage,
+    Uint8List? renderingData,
     InputFormatBean? inputFormatBean,
     EncryptType? encryptType,
     String? anyStrKey,
@@ -31,7 +31,7 @@ class EncryptImageBean {
   }) {
     return EncryptImageBean(
       image: image ?? this.image,
-      renderingData: renderingImage ?? this.renderingData,
+      renderingData: renderingData ?? this.renderingData,
       inputFormatBean: inputFormatBean ?? this.inputFormatBean,
       encryptType: encryptType ?? this.encryptType,
       anyStrKey: anyStrKey ?? this.anyStrKey,

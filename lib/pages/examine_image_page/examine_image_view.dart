@@ -29,7 +29,7 @@ class ExamineImagePage extends GetView<ExamineImageController> {
                 onTap: Get.back,
                 child: Container(
                   padding: const EdgeInsets.all(5.0),
-                  decoration:  BoxDecoration(
+                  decoration: BoxDecoration(
                     color: Colors.white24,
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white12),

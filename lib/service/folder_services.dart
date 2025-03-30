@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:get/get.dart';
 import 'package:path/path.dart' as path;
 import 'package:picencrypt/utils/file_type_check_util.dart';
 
@@ -16,32 +17,26 @@ Future<List<String>?> folderServices() async {
     Directory directory = Directory(directoryPath);
     List<FileSystemEntity> files = directory.listSync();
 
-    final suffixNames = [
-      FileSuffixType.jpg,
-      FileSuffixType.jpeg,
-      FileSuffixType.png,
-      FileSuffixType.webp,
-    ].map((e) => e.suffix).toList();
-
-    List<FileSystemEntity> temps = files.where((file) {
-      final extension = path.extension(file.path).toLowerCase();
-      return suffixNames.contains(extension);
-    }).toList();
+    final fileSuffixTypes = [
+      FileMimeType.jpeg,
+      FileMimeType.png,
+      FileMimeType.webp,
+    ];
 
     List<String> imageFiles = [];
 
-    for (final fileEntity in temps) {
-      if (fileEntity is File) {
-        final extension = path.extension(fileEntity.path).toLowerCase();
-        final fileSuffixType = FileSuffixType.getBySuffix(extension);
-        if (fileSuffixType != null) {
-          bool value = await FileTypeCheckUtil.checkFileIdentifier(
-            filePath: fileEntity.path,
-            fileSuffixType: fileSuffixType,
-          );
-          if (value) {
-            imageFiles.add(fileEntity.path);
-          }
+    for (final file in files) {
+      final extension = path.extension(file.path).toLowerCase();
+      final type = fileSuffixTypes.firstWhereOrNull((element) {
+        return FileMimeType.getByName(extension) != null;
+      });
+      if (type != null) {
+        bool value = await FileMimeTypeCheckUtil.checkMimeType(
+          filePath: file.path,
+          fileMimeType: type,
+        );
+        if (value) {
+          imageFiles.add(file.path);
         }
       }
     }

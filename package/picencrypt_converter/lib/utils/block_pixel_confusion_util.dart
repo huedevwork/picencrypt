@@ -1,18 +1,19 @@
 import 'package:image/image.dart' as img;
-import 'package:picencrypt/utils/pic_encrypt_util.dart';
+
+import 'random_scramble.dart';
 
 class BlockPixelConfusionUtil {
   static img.Image encodeImg({
     required img.Image image,
     required String key,
-    required int sx,
-    required int sy,
+    int sx = 32,
+    int sy = 32,
   }) {
     int width = image.width;
     int height = image.height;
     int ssx, ssy;
-    List<int> xl = PicEncryptUtil.randomScramble(key: key, arrLength: sx);
-    List<int> yl = PicEncryptUtil.randomScramble(key: key, arrLength: sy);
+    List<int> xl = RandomScrambleUtil.randomScramble(key: key, arrLength: sx);
+    List<int> yl = RandomScrambleUtil.randomScramble(key: key, arrLength: sy);
 
     while (width % sx > 0) {
       width++;
@@ -44,14 +45,14 @@ class BlockPixelConfusionUtil {
   static img.Image decodeImg({
     required img.Image image,
     required String key,
-    required int sx,
-    required int sy,
+    int sx = 32,
+    int sy = 32,
   }) {
     int width = image.width;
     int height = image.height;
     int ssx, ssy;
-    List<int> xl = PicEncryptUtil.randomScramble(key: key, arrLength: sx);
-    List<int> yl = PicEncryptUtil.randomScramble(key: key, arrLength: sy);
+    List<int> xl = RandomScrambleUtil.randomScramble(key: key, arrLength: sx);
+    List<int> yl = RandomScrambleUtil.randomScramble(key: key, arrLength: sy);
 
     while (width % sx > 0) {
       width++;

@@ -1,5 +1,6 @@
 import 'package:image/image.dart' as img;
-import 'package:picencrypt/utils/pic_encrypt_util.dart';
+
+import 'random_scramble.dart';
 
 class RowPixelConfusionUtil {
   static img.Image encodeImg({
@@ -8,8 +9,8 @@ class RowPixelConfusionUtil {
   }) {
     int width = image.width;
     int height = image.height;
-    List<int> xl = PicEncryptUtil.randomScramble(key: key, arrLength: width);
-    // List<int> yl = PicEncryptUtil.randomScramble(key: key, arrLength: hit);
+    List<int> xl = RandomScrambleUtil.randomScramble(key: key, arrLength: width);
+    // List<int> yl = RandomScrambleUtil.randomScramble(key: key, arrLength: hit);
 
     img.Image rawImage = img.Image(width: width, height: height);
     for (int i = 0; i < width; i++) {
@@ -30,8 +31,8 @@ class RowPixelConfusionUtil {
   }) {
     int width = image.width;
     int height = image.height;
-    List<int> xl = PicEncryptUtil.randomScramble(key: key, arrLength: width);
-    // List<int> yl = PicEncryptUtil.randomScramble(key: key, arrLength: hit);
+    List<int> xl = RandomScrambleUtil.randomScramble(key: key, arrLength: width);
+    // List<int> yl = RandomScrambleUtil.randomScramble(key: key, arrLength: hit);
 
     img.Image rawImage = img.Image(width: width, height: height);
     for (int i = 0; i < width; i++) {

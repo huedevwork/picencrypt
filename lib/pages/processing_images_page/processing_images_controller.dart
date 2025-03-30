@@ -20,6 +20,7 @@ import 'package:picencrypt/service/permission_service.dart';
 import 'package:picencrypt/utils/cache_manager_util.dart';
 import 'package:picencrypt/utils/compute_util.dart';
 import 'package:picencrypt/utils/create_file_name_util.dart';
+import 'package:picencrypt/utils/logger_utils.dart';
 import 'package:picencrypt/utils/pic_encrypt_util.dart';
 import 'package:picencrypt/widgets/dialog_mode_select.dart';
 import 'package:picencrypt/widgets/dialog_textField.dart';
@@ -27,6 +28,8 @@ import 'package:picencrypt/widgets/dialog_textField.dart';
 import 'processing_images_model.dart';
 
 class ProcessingImagesController extends GetxController {
+  final LoggerUtils _logger = LoggerUtils();
+
   final LocalStorage _localStorage = LocalStorage();
 
   RxBool init = true.obs;
@@ -40,7 +43,7 @@ class ProcessingImagesController extends GetxController {
   final _floatFormat = FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'));
 
   // 最大长度限制 - 字符
-  final _lengthAnyStrFormat = LengthLimitingTextInputFormatter(30);
+  // final _lengthAnyStrFormat = LengthLimitingTextInputFormatter(30);
 
   // 最大长度限制 - 浮点
   final _lengthFloatRangeFormat = LengthLimitingTextInputFormatter(8);
@@ -50,7 +53,7 @@ class ProcessingImagesController extends GetxController {
 
   late Rx<InputFormatBean> inputFormatBean = Rx<InputFormatBean>(
     InputFormatBean(
-      formats: [_disableSpaceFormat, _lengthAnyStrFormat],
+      formats: [_disableSpaceFormat, /*_lengthAnyStrFormat*/],
       keyboardType: TextInputType.text,
       labelText: '可为任意字符串(Any String)',
     ),
@@ -98,7 +101,7 @@ class ProcessingImagesController extends GetxController {
       params: imageList,
       entryLogic: (tempList) {
         return tempList.map((image) {
-          return Uint8List.fromList(img.encodePng(image));
+          return Uint8List.fromList(img.encodeJpg(image));
         }).toList();
       },
     );
@@ -110,7 +113,7 @@ class ProcessingImagesController extends GetxController {
         image: image,
         renderingData: renderingDataList[i],
         inputFormatBean: InputFormatBean(
-          formats: [_disableSpaceFormat, _lengthAnyStrFormat],
+          formats: [_disableSpaceFormat, /*_lengthAnyStrFormat*/],
           keyboardType: TextInputType.text,
           labelText: '可为任意字符串(Any String)',
         ),
@@ -165,7 +168,7 @@ class ProcessingImagesController extends GetxController {
       textController.value.text = _floatRangeKey.toString();
     } else {
       inputFormatBean.value = InputFormatBean(
-        formats: [_disableSpaceFormat, _lengthAnyStrFormat],
+        formats: [_disableSpaceFormat, /*_lengthAnyStrFormat*/],
         keyboardType: TextInputType.text,
         labelText: '可为任意字符串(Any String)',
       );
@@ -441,6 +444,14 @@ class ProcessingImagesController extends GetxController {
   Future<void> onAllReset() async {
     await EasyLoading.show(status: 'Loading...');
 
+    for (int i = 0; i < _images.value.length; i++) {
+      _images.value[i] = _images.value[i].copyWith(
+        encryptType: uiImages.value[i].encryptType,
+        anyStrKey: uiImages.value[i].anyStrKey,
+        floatRangeKey: uiImages.value[i].floatRangeKey,
+      );
+    }
+
     uiImages.value = List.from(_images.value);
 
     EasyLoading.dismiss();
@@ -468,20 +479,20 @@ class ProcessingImagesController extends GetxController {
         } else if (encryptType.value == EncryptType.picEncryptRowColConfusion) {
           image = await _picEncryptRowColConfusionEncode(item);
         } else if (encryptType.value == EncryptType.gilbert2dConfusion) {
-          image = await _hilbertCurveConfusionEncode(item);
+          image = await _gilbert2dCurveConfusionEncode(item);
         }
 
         if (image != null) {
           Uint8List renderingImage = await ComputeUtil.handle(
             params: image,
             entryLogic: (data) {
-              return Uint8List.fromList(img.encodePng(data));
+              return Uint8List.fromList(img.encodeJpg(data));
             },
           );
 
           tempList[i] = tempList[i].copyWith(
             image: image,
-            renderingImage: renderingImage,
+            renderingData: renderingImage,
           );
         }
       }
@@ -490,10 +501,9 @@ class ProcessingImagesController extends GetxController {
 
       EasyLoading.dismiss();
     } catch (e, s) {
-      debugPrint('error: ${e.toString()}');
-      debugPrintStack(stackTrace: s);
-
       EasyLoading.dismiss();
+
+      _logger.e('混淆失败', error: e, stackTrace: s);
     }
   }
 
@@ -519,20 +529,20 @@ class ProcessingImagesController extends GetxController {
         } else if (encryptType.value == EncryptType.picEncryptRowColConfusion) {
           image = await _picEncryptRowColConfusionDecode(item);
         } else if (encryptType.value == EncryptType.gilbert2dConfusion) {
-          image = await _hilbertCurveConfusionDecode(item);
+          image = await _gilbert2dCurveConfusionDecode(item);
         }
 
         if (image != null) {
           Uint8List renderingImage = await ComputeUtil.handle(
             params: image,
             entryLogic: (data) {
-              return Uint8List.fromList(img.encodePng(data));
+              return Uint8List.fromList(img.encodeJpg(data));
             },
           );
 
           tempList[i] = tempList[i].copyWith(
             image: image,
-            renderingImage: renderingImage,
+            renderingData: renderingImage,
           );
         }
       }
@@ -541,10 +551,9 @@ class ProcessingImagesController extends GetxController {
 
       EasyLoading.dismiss();
     } catch (e, s) {
-      debugPrint('error: ${e.toString()}');
-      debugPrintStack(stackTrace: s);
-
       EasyLoading.dismiss();
+
+      _logger.e('解码失败', error: e, stackTrace: s);
     }
   }
 
@@ -692,8 +701,7 @@ class ProcessingImagesController extends GetxController {
 
       _onCustomSnackBar(content: const Text('保存文件失败'));
 
-      debugPrint('error: ${e.toString()}');
-      debugPrintStack(stackTrace: s);
+      _logger.e('保存失败', error: e, stackTrace: s);
     }
   }
 
@@ -728,7 +736,7 @@ class ProcessingImagesController extends GetxController {
         image = await _picEncryptRowColConfusionEncode(item);
         break;
       case EncryptType.gilbert2dConfusion:
-        image = await _hilbertCurveConfusionEncode(item);
+        image = await _gilbert2dCurveConfusionEncode(item);
     }
 
     if (image != null) {
@@ -737,13 +745,13 @@ class ProcessingImagesController extends GetxController {
       Uint8List renderingImage = await ComputeUtil.handle(
         params: image,
         entryLogic: (data) {
-          return Uint8List.fromList(img.encodePng(data));
+          return Uint8List.fromList(img.encodeJpg(data));
         },
       );
 
       tempList[index] = tempList[index].copyWith(
         image: image,
-        renderingImage: renderingImage,
+        renderingData: renderingImage,
       );
 
       uiImages.value = List.from(tempList);
@@ -772,7 +780,7 @@ class ProcessingImagesController extends GetxController {
         image = await _picEncryptRowColConfusionDecode(item);
         break;
       case EncryptType.gilbert2dConfusion:
-        image = await _hilbertCurveConfusionDecode(item);
+        image = await _gilbert2dCurveConfusionDecode(item);
     }
 
     if (image != null) {
@@ -781,13 +789,13 @@ class ProcessingImagesController extends GetxController {
       Uint8List renderingImage = await ComputeUtil.handle(
         params: image,
         entryLogic: (data) {
-          return Uint8List.fromList(img.encodePng(data));
+          return Uint8List.fromList(img.encodeJpg(data));
         },
       );
 
       tempList[index] = tempList[index].copyWith(
         image: image,
-        renderingImage: renderingImage,
+        renderingData: renderingImage,
       );
 
       uiImages.value = List.from(tempList);
@@ -895,7 +903,7 @@ class ProcessingImagesController extends GetxController {
   }
 
   /// 空间填充曲线混淆 加密
-  Future<img.Image?> _hilbertCurveConfusionEncode(
+  Future<img.Image?> _gilbert2dCurveConfusionEncode(
     EncryptImageBean item,
   ) async {
     return await PicEncryptUtil.gilbert2dTransformImage(
@@ -905,7 +913,7 @@ class ProcessingImagesController extends GetxController {
   }
 
   /// 空间填充曲线混淆 解密
-  Future<img.Image?> _hilbertCurveConfusionDecode(
+  Future<img.Image?> _gilbert2dCurveConfusionDecode(
     EncryptImageBean item,
   ) async {
     return await PicEncryptUtil.gilbert2dTransformImage(

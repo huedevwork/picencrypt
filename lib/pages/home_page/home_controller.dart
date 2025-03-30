@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -19,8 +18,10 @@ import 'package:picencrypt/service/open_platform_image_view.dart';
 import 'package:picencrypt/service/permission_service.dart';
 import 'package:picencrypt/service/single_file_services.dart';
 import 'package:picencrypt/utils/cache_manager_util.dart';
+import 'package:picencrypt/utils/compute_util.dart';
 import 'package:picencrypt/utils/create_file_name_util.dart';
 import 'package:picencrypt/utils/file_type_check_util.dart';
+import 'package:picencrypt/utils/logger_utils.dart';
 import 'package:picencrypt/utils/pic_encrypt_util.dart';
 import 'package:picencrypt/widgets/process_selection_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -31,6 +32,8 @@ import 'bean/encrypt_type.dart';
 import 'bean/input_format_bean.dart';
 
 class HomeController extends GetxController {
+  final LoggerUtils _logger = LoggerUtils();
+
   final LocalStorage _localStorage = LocalStorage();
 
   // 禁止输入空格
@@ -40,7 +43,7 @@ class HomeController extends GetxController {
   final _floatFormat = FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'));
 
   // 最大长度限制 - 字符
-  final _lengthAnyStrFormat = LengthLimitingTextInputFormatter(30);
+  // final _lengthAnyStrFormat = LengthLimitingTextInputFormatter(30);
 
   // 最大长度限制 - 浮点
   final _lengthFloatRangeFormat = LengthLimitingTextInputFormatter(8);
@@ -50,7 +53,7 @@ class HomeController extends GetxController {
 
   late Rx<InputFormatBean> inputFormatBean = Rx<InputFormatBean>(
     InputFormatBean(
-      formats: [_disableSpaceFormat, _lengthAnyStrFormat],
+      formats: [_disableSpaceFormat, /*_lengthAnyStrFormat*/],
       keyboardType: TextInputType.text,
       labelText: '可为任意字符串(Any String)',
     ),
@@ -74,6 +77,12 @@ class HomeController extends GetxController {
   void onInit() {
     super.onInit();
     _getVersionInfo();
+
+    // try {
+    //   throw Exception('Log test');
+    // } catch(e, s) {
+    //   _logger.e('Log test', error: e, stackTrace: s);
+    // }
   }
 
   Future<void> _getVersionInfo() async {
@@ -134,6 +143,44 @@ class HomeController extends GetxController {
   void onJumpGithub() {
     Uri uri = Uri.parse('https://github.com/huedevwork/picencrypt');
     launchUrl(uri);
+  }
+
+  Future<void> onExportLogs() async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+
+    String? path = await _logger.exportLogs();
+    if (path == null) {
+      return;
+    }
+
+    var result = await showDialog(
+      context: Get.context!,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text('已导出日志'),
+          content: Text('日志保存路径:\n$path'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(Get.context!).pop(true),
+              child: const Text('复制到剪贴板'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(Get.context!).pop(),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true) {
+      // 复制文件路径到剪贴板
+      await Clipboard.setData(ClipboardData(text: path));
+
+      _onCustomSnackBar(content: const Text('已复制到剪贴板'));
+    }
   }
 
   Future<void> onSetSAFDirectory() async {
@@ -339,8 +386,7 @@ class HomeController extends GetxController {
 
       _onCustomSnackBar(content: const Text('保存文件失败'));
 
-      debugPrint('error: ${e.toString()}');
-      debugPrintStack(stackTrace: s);
+      _logger.e('保存文件失败', error: e, stackTrace: s);
     }
   }
 
@@ -386,7 +432,10 @@ class HomeController extends GetxController {
         if (Platform.isAndroid || Platform.isIOS) {
           path = await singleFileServices();
         } else {
+          final downloadsDir = await getDownloadsDirectory();
+
           FilePickerResult? result = await FilePicker.platform.pickFiles(
+            initialDirectory: downloadsDir?.path,
             type: FileType.image,
             allowCompression: false,
             compressionQuality: 100,
@@ -407,9 +456,9 @@ class HomeController extends GetxController {
 
         await EasyLoading.show(status: 'Loading...');
 
-        bool isGif = await FileTypeCheckUtil.checkFileIdentifier(
+        bool isGif = await FileMimeTypeCheckUtil.checkMimeType(
           filePath: path,
-          fileSuffixType: FileSuffixType.gif,
+          fileMimeType: FileMimeType.gif,
         );
         if (isGif) {
           EasyLoading.dismiss();
@@ -424,7 +473,11 @@ class HomeController extends GetxController {
           CacheManagerUtil.clearCache();
         }
 
-        img.Image? decodedImage = img.decodeImage(bytes);
+        img.Image? decodedImage = await ComputeUtil.handle(
+          params: bytes,
+          entryLogic: (data) => img.decodeImage(data),
+        );
+
         if (decodedImage == null) {
           EasyLoading.dismiss();
 
@@ -432,8 +485,9 @@ class HomeController extends GetxController {
           return;
         }
 
-        const int maxImageSize = 4294967296;
-        if (decodedImage.width * decodedImage.height > maxImageSize) {
+        const int maxPixels = 4294967296;
+        final int totalPixels = decodedImage.width * decodedImage.height;
+        if (totalPixels > maxPixels) {
           EasyLoading.dismiss();
 
           _onCustomSnackBar(content: const Text('图片尺寸过大'));
@@ -450,8 +504,7 @@ class HomeController extends GetxController {
 
         _onCustomSnackBar(content: const Text('导入图片解码失败'));
 
-        debugPrint('error: ${e.toString()}');
-        debugPrintStack(stackTrace: s);
+        _logger.e('导入图片解码失败', error: e, stackTrace: s);
       }
     } else {
       try {
@@ -472,13 +525,12 @@ class HomeController extends GetxController {
           AppRoutes.processingImages,
           arguments: imagePaths,
         );
-      } catch(e, s) {
+      } catch (e, s) {
         isPicking.value = false;
 
         _onCustomSnackBar(content: const Text('导入图片解码失败'));
 
-        debugPrint('error: ${e.toString()}');
-        debugPrintStack(stackTrace: s);
+        _logger.e('导入图片解码失败', error: e, stackTrace: s);
       }
     }
   }
@@ -496,7 +548,7 @@ class HomeController extends GetxController {
       textController.value.text = _floatRangeKey.toString();
     } else {
       inputFormatBean.value = InputFormatBean(
-        formats: [_disableSpaceFormat, _lengthAnyStrFormat],
+        formats: [_disableSpaceFormat, /*_lengthAnyStrFormat*/],
         keyboardType: TextInputType.text,
         labelText: '可为任意字符串(Any String)',
       );

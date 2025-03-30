@@ -24,7 +24,7 @@ class _DialogTextFieldState extends State<DialogTextField> {
   final _floatFormat = FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'));
 
   // 最大长度限制 - 字符
-  final _lengthAnyStrFormat = LengthLimitingTextInputFormatter(30);
+  // final _lengthAnyStrFormat = LengthLimitingTextInputFormatter(30);
 
   // 最大长度限制 - 浮点
   final _lengthFloatRangeFormat = LengthLimitingTextInputFormatter(8);
@@ -52,7 +52,9 @@ class _DialogTextFieldState extends State<DialogTextField> {
       textController.text = widget.item.floatRangeKey.toString();
     } else {
       inputFormatBean = InputFormatBean(
-        formats: [_disableSpaceFormat, _lengthAnyStrFormat],
+        formats: [
+          _disableSpaceFormat, /*_lengthAnyStrFormat*/
+        ],
         keyboardType: TextInputType.text,
         labelText: '可为任意字符串(Any String)',
       );
@@ -64,10 +66,8 @@ class _DialogTextFieldState extends State<DialogTextField> {
 
   /// 检查输入密钥条件
   void onValidateInput(String value) {
-    bool value1 =
-        widget.item.encryptType.value == EncryptType.picEncryptRowConfusion;
-    bool value2 =
-        widget.item.encryptType.value == EncryptType.picEncryptRowColConfusion;
+    bool value1 = widget.item.encryptType == EncryptType.picEncryptRowConfusion;
+    bool value2 = widget.item.encryptType == EncryptType.picEncryptRowColConfusion;
     if (value1 || value2) {
       if (value.isEmpty) {
         _floatRangeKey = 0.666;

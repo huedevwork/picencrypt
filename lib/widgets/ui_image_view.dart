@@ -42,7 +42,7 @@ class UiImageView extends StatelessWidget {
             uiImgHeight = min;
           }
 
-          final imageData = Uint8List.fromList(img.encodePng(image!));
+          final imageData = Uint8List.fromList(img.encodeJpg(image!));
 
           return Image.memory(
             imageData,

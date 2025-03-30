@@ -1,95 +1,47 @@
 import 'dart:io';
 
 import 'package:get/get.dart';
+import 'package:mime/mime.dart';
 
-enum FileSuffixType {
-  /// jpg
-  jpg(
-    suffix: '.jpg',
-    readLength: 3,
-    identifiers: [
-      [0xFF, 0xD8, 0xFF]
-    ],
-  ),
+typedef FileTypeCheckTuple = ({int length, List<int> identifiers});
 
-  /// jpeg
-  jpeg(
-    suffix: '.jpeg',
-    readLength: 3,
-    identifiers: [
-      [0xFF, 0xD8, 0xFF]
-    ],
-  ),
+enum FileMimeType {
+  jpeg,
+  png,
+  webp,
+  gif;
 
-  /// png
-  png(
-    suffix: '.png',
-    readLength: 8,
-    identifiers: [
-      [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
-    ],
-  ),
+  static FileMimeType? getByName(String name) {
+    if (name.contains('.')) {
+      name = name.substring(1);
+    }
 
-  /// webp
-  webp(
-    suffix: '.webp',
-    readLength: 12,
-    identifiers: [
-      [0x52, 0x49, 0x46, 0x46, 0x34, 0x2E, 0x57, 0x45, 0x42]
-    ],
-  ),
+    if (name == 'jpg') {
+      name = FileMimeType.jpeg.name;
+    }
 
-  /// gif
-  gif(
-    suffix: '.gif',
-    readLength: 6,
-    identifiers: [
-      [0x47, 0x49, 0x46, 0x38, 0x37, 0x61],
-      [0x47, 0x49, 0x46, 0x38, 0x39, 0x61],
-    ],
-  );
-
-  const FileSuffixType({
-    required this.suffix,
-    required this.readLength,
-    required this.identifiers,
-  });
-
-  final String suffix;
-  final int readLength;
-  final List<List<int>> identifiers;
-
-  static FileSuffixType? getBySuffix(String name) {
-    return FileSuffixType.values.firstWhereOrNull((element) {
-      return element.name == name || element.suffix == name;
+    return FileMimeType.values.firstWhereOrNull((element) {
+      return element.name == name;
     });
   }
 }
 
-class FileTypeCheckUtil {
-  static Future<bool> checkFileIdentifier({
+class FileMimeTypeCheckUtil {
+  static Future<bool> checkMimeType({
     required String filePath,
-    required FileSuffixType fileSuffixType,
+    required FileMimeType fileMimeType,
   }) async {
-    bool areListsEqual(List<int> list1, List<int> list2) {
-      if (list1.length != list2.length) return false;
-      for (int i = 0; i < list1.length; i++) {
-        if (list1[i] != list2[i]) return false;
-      }
-      return true;
-    }
-
     final file = File(filePath);
-    final stream = await file.openRead(0, fileSuffixType.readLength).toList();
-    final headerBytes = stream.expand((e) => e).toList();
-
-    List<bool> resultList = [];
-
-    for (final list in fileSuffixType.identifiers) {
-      bool value = areListsEqual(headerBytes, list);
-      resultList.add(value);
+    final opList = await file.openRead(0, 16).expand((x) => x).toList();
+    final mimeType = lookupMimeType(file.path, headerBytes: opList);
+    if (mimeType == null) {
+      return false;
     }
-
-    return resultList.any((element) => element == true);
+    final extension = extensionFromMime(mimeType);
+    if (extension == null) {
+      return false;
+    }
+    final fileMimeType = FileMimeType.getByName(extension);
+    return fileMimeType != null;
   }
 }
