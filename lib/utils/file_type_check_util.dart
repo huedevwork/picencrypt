@@ -27,21 +27,18 @@ enum FileMimeType {
 }
 
 class FileMimeTypeCheckUtil {
-  static Future<bool> checkMimeType({
-    required String filePath,
-    required FileMimeType fileMimeType,
-  }) async {
+  static Future<FileMimeType?> checkMimeType({required String filePath}) async {
     final file = File(filePath);
     final opList = await file.openRead(0, 16).expand((x) => x).toList();
     final mimeType = lookupMimeType(file.path, headerBytes: opList);
     if (mimeType == null) {
-      return false;
+      return null;
     }
     final extension = extensionFromMime(mimeType);
     if (extension == null) {
-      return false;
+      return null;
     }
     final fileMimeType = FileMimeType.getByName(extension);
-    return fileMimeType != null;
+    return fileMimeType;
   }
 }

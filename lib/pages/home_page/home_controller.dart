@@ -129,14 +129,28 @@ class HomeController extends GetxController {
     }
   }
 
-  void onOpenExamineImage() {
+  Future<void> onOpenExamineImage() async {
+    img.Image? image = uiImage.value;
+    if (image == null) {
+      return;
+    }
+
     if (Platform.isAndroid || Platform.isIOS) {
+      await EasyLoading.show(status: 'Loading...');
+
+      Uint8List imageData = await ComputeUtil.handle(
+        params: image,
+        entryLogic: (image) => img.encodeJpg(image),
+      );
+
+      EasyLoading.dismiss();
+
       Get.toNamed(
         AppRoutes.photoView,
-        arguments: uiImage.value,
+        arguments: imageData,
       );
     } else {
-      openPlatformImageService(uiImage.value!);
+      openPlatformImageService(image);
     }
   }
 
@@ -402,7 +416,7 @@ class HomeController extends GetxController {
           permission = Permission.photos;
         }
       } else {
-        permission = Permission.photos;
+        permission = Permission.storage;
       }
 
       bool results = await PermissionService.requestPermission(
@@ -456,11 +470,18 @@ class HomeController extends GetxController {
 
         await EasyLoading.show(status: 'Loading...');
 
-        bool isGif = await FileMimeTypeCheckUtil.checkMimeType(
+        FileMimeType? fileMimeType = await FileMimeTypeCheckUtil.checkMimeType(
           filePath: path,
-          fileMimeType: FileMimeType.gif,
         );
-        if (isGif) {
+
+        if (fileMimeType == null) {
+          EasyLoading.dismiss();
+
+          _onCustomSnackBar(content: const Text('当前文件类型暂不支持'));
+          return;
+        }
+
+        if (fileMimeType == FileMimeType.gif) {
           EasyLoading.dismiss();
 
           _onCustomSnackBar(content: const Text('GIF类型文件暂不支持'));

@@ -1,12 +1,13 @@
+import 'dart:typed_data';
+
 import 'package:get/get.dart';
-import 'package:image/image.dart' as img;
 
 class ExamineImageController extends GetxController {
-  late Rx<img.Image> uiImage;
+  late Uint8List imageData;
 
   @override
   void onInit() {
-    uiImage = Rx<img.Image>(Get.arguments);
+    imageData = Get.arguments;
     super.onInit();
   }
 
@@ -14,7 +15,5 @@ class ExamineImageController extends GetxController {
   void onReady() {}
 
   @override
-  void onClose() {
-    uiImage.close();
-  }
+  void onClose() {}
 }

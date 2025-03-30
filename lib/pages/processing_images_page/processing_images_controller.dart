@@ -142,14 +142,20 @@ class ProcessingImagesController extends GetxController {
     textController.close();
   }
 
-  void onOpenExamineImage(int index) {
+  Future<void> onOpenExamineImage(int index) async {
     img.Image image = uiImages.value[index].image;
 
     if (Platform.isAndroid || Platform.isIOS) {
-      Get.toNamed(
-        AppRoutes.photoView,
-        arguments: image,
+      await EasyLoading.show(status: 'Loading...');
+
+      Uint8List imageData = await ComputeUtil.handle(
+        params: image,
+        entryLogic: (image) => img.encodeJpg(image),
       );
+
+      EasyLoading.dismiss();
+
+      Get.toNamed(AppRoutes.photoView, arguments: imageData);
     } else {
       openPlatformImageService(image);
     }

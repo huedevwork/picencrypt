@@ -31,11 +31,10 @@ Future<List<String>?> folderServices() async {
         return FileMimeType.getByName(extension) != null;
       });
       if (type != null) {
-        bool value = await FileMimeTypeCheckUtil.checkMimeType(
+        FileMimeType? fileMimeType = await FileMimeTypeCheckUtil.checkMimeType(
           filePath: file.path,
-          fileMimeType: type,
         );
-        if (value) {
+        if (fileMimeType != null) {
           imageFiles.add(file.path);
         }
       }

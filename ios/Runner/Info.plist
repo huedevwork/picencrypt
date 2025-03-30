@@ -29,14 +29,6 @@
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UISupportedInterfaceOrientations</key>
-
-	<key>NSPhotoLibraryUsageDescription</key>
-    <string>需要访问您的照片库以选择图片</string>
-    <key>NSPhotoLibraryAddUsageDescription</key>
-    <string>需要访问您的照片库以保存图片</string>
-    <key>NSFileProviderUsageDescription</key>
-    <string>需要访问文件以进行读写操作</string
-
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
@@ -53,5 +45,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+    <string>需要访问您的照片库以选择图片</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>需要访问您的照片库以保存图片</string>
+    <key>NSFileProviderUsageDescription</key>
+    <string>需要访问文件以进行读写操作</string>
+    <key>NSFileProviderDomainUsageDescription</key>
+    <string>此应用需要访问您的文件系统以进行文件的读取和写入操作。</string>
 </dict>
 </plist>
