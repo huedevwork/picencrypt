@@ -23,6 +23,7 @@ dependencies:
   path_provider: any
   image_picker: any
   file_picker: any
+  vision_gallery_saver: any
   window_manager: any
   flutter_easyloading: any
   isolate: any

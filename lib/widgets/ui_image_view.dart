@@ -12,14 +12,7 @@ class UiImageView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (image == null) {
-      return const Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('点击下面右边按钮导入图片'),
-          Text('点击下面左边按钮保存图片'),
-        ],
-      );
+      return const Center(child: Text('点击左下角按钮 导入&保存 图片'));
     } else {
       return LayoutBuilder(
         builder: (_, cot) {

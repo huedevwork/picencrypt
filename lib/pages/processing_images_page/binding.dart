@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 
-import 'processing_images_controller.dart';
+import 'controller.dart';
 
 class ProcessingImagesBinding extends Bindings {
   @override

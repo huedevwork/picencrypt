@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:picencrypt/pages/home_page/bean/encrypt_type.dart';
 import 'package:picencrypt/pages/home_page/bean/input_format_bean.dart';
-import 'package:picencrypt/pages/processing_images_page/processing_images_model.dart';
+import 'package:picencrypt/pages/processing_images_page/model.dart';
 
 import 'encrypt_input_widget.dart';
 
@@ -23,12 +23,6 @@ class _DialogTextFieldState extends State<DialogTextField> {
   // 允许数字和小数点
   final _floatFormat = FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'));
 
-  // 最大长度限制 - 字符
-  // final _lengthAnyStrFormat = LengthLimitingTextInputFormatter(30);
-
-  // 最大长度限制 - 浮点
-  final _lengthFloatRangeFormat = LengthLimitingTextInputFormatter(8);
-
   String _anyStrKey = '0.666';
   double _floatRangeKey = 0.666;
 
@@ -44,7 +38,7 @@ class _DialogTextFieldState extends State<DialogTextField> {
         widget.item.encryptType == EncryptType.picEncryptRowColConfusion;
     if (value1 || value2) {
       inputFormatBean = InputFormatBean(
-        formats: [_disableSpaceFormat, _floatFormat, _lengthFloatRangeFormat],
+        formats: [_disableSpaceFormat, _floatFormat],
         keyboardType: TextInputType.number,
         labelText: '范围 0.1 - 0.9 (Range 0.1 - 0.9)',
       );
@@ -52,9 +46,7 @@ class _DialogTextFieldState extends State<DialogTextField> {
       textController.text = widget.item.floatRangeKey.toString();
     } else {
       inputFormatBean = InputFormatBean(
-        formats: [
-          _disableSpaceFormat, /*_lengthAnyStrFormat*/
-        ],
+        formats: [_disableSpaceFormat],
         keyboardType: TextInputType.text,
         labelText: '可为任意字符串(Any String)',
       );

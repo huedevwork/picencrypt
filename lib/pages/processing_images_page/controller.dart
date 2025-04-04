@@ -25,7 +25,7 @@ import 'package:picencrypt/utils/pic_encrypt_util.dart';
 import 'package:picencrypt/widgets/dialog_mode_select.dart';
 import 'package:picencrypt/widgets/dialog_textField.dart';
 
-import 'processing_images_model.dart';
+import 'model.dart';
 
 class ProcessingImagesController extends GetxController {
   final LoggerUtils _logger = LoggerUtils();
@@ -42,18 +42,12 @@ class ProcessingImagesController extends GetxController {
   // 允许数字和小数点
   final _floatFormat = FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'));
 
-  // 最大长度限制 - 字符
-  // final _lengthAnyStrFormat = LengthLimitingTextInputFormatter(30);
-
-  // 最大长度限制 - 浮点
-  final _lengthFloatRangeFormat = LengthLimitingTextInputFormatter(8);
-
   RxString _anyStrKey = RxString('0.666');
   RxDouble _floatRangeKey = RxDouble(0.666);
 
   late Rx<InputFormatBean> inputFormatBean = Rx<InputFormatBean>(
     InputFormatBean(
-      formats: [_disableSpaceFormat, /*_lengthAnyStrFormat*/],
+      formats: [_disableSpaceFormat],
       keyboardType: TextInputType.text,
       labelText: '可为任意字符串(Any String)',
     ),
@@ -113,7 +107,7 @@ class ProcessingImagesController extends GetxController {
         image: image,
         renderingData: renderingDataList[i],
         inputFormatBean: InputFormatBean(
-          formats: [_disableSpaceFormat, /*_lengthAnyStrFormat*/],
+          formats: [_disableSpaceFormat],
           keyboardType: TextInputType.text,
           labelText: '可为任意字符串(Any String)',
         ),
@@ -166,7 +160,7 @@ class ProcessingImagesController extends GetxController {
     bool value2 = EncryptType.picEncryptRowColConfusion == value;
     if (value1 || value2) {
       inputFormatBean.value = InputFormatBean(
-        formats: [_disableSpaceFormat, _floatFormat, _lengthFloatRangeFormat],
+        formats: [_disableSpaceFormat, _floatFormat],
         keyboardType: TextInputType.number,
         labelText: '范围 0.1 - 0.9 (Range 0.1 - 0.9)',
       );
@@ -174,7 +168,7 @@ class ProcessingImagesController extends GetxController {
       textController.value.text = _floatRangeKey.toString();
     } else {
       inputFormatBean.value = InputFormatBean(
-        formats: [_disableSpaceFormat, /*_lengthAnyStrFormat*/],
+        formats: [_disableSpaceFormat],
         keyboardType: TextInputType.text,
         labelText: '可为任意字符串(Any String)',
       );

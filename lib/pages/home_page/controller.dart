@@ -25,6 +25,7 @@ import 'package:picencrypt/utils/logger_utils.dart';
 import 'package:picencrypt/utils/pic_encrypt_util.dart';
 import 'package:picencrypt/widgets/process_selection_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vision_gallery_saver/vision_gallery_saver.dart';
 
 import '../../service/folder_services.dart';
 import '../../service/multiple_file_services.dart';
@@ -42,18 +43,12 @@ class HomeController extends GetxController {
   // 允许数字和小数点
   final _floatFormat = FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'));
 
-  // 最大长度限制 - 字符
-  // final _lengthAnyStrFormat = LengthLimitingTextInputFormatter(30);
-
-  // 最大长度限制 - 浮点
-  final _lengthFloatRangeFormat = LengthLimitingTextInputFormatter(8);
-
   RxString _anyStrKey = RxString('0.666');
   RxDouble _floatRangeKey = RxDouble(0.666);
 
   late Rx<InputFormatBean> inputFormatBean = Rx<InputFormatBean>(
     InputFormatBean(
-      formats: [_disableSpaceFormat, /*_lengthAnyStrFormat*/],
+      formats: [_disableSpaceFormat],
       keyboardType: TextInputType.text,
       labelText: '可为任意字符串(Any String)',
     ),
@@ -101,7 +96,7 @@ class HomeController extends GetxController {
     textController.close();
   }
 
-  void _onCustomSnackBar({
+  void _showSnackBar({
     required Widget content,
     Duration duration = const Duration(seconds: 5),
   }) {
@@ -109,6 +104,10 @@ class HomeController extends GetxController {
       content: content,
       duration: duration,
     ));
+  }
+
+  void onClear() {
+    uiImage.value = null;
   }
 
   Future<String?> _getSAFPath() async {
@@ -193,7 +192,7 @@ class HomeController extends GetxController {
       // 复制文件路径到剪贴板
       await Clipboard.setData(ClipboardData(text: path));
 
-      _onCustomSnackBar(content: const Text('已复制到剪贴板'));
+      _showSnackBar(content: const Text('已复制到剪贴板'));
     }
   }
 
@@ -271,12 +270,11 @@ class HomeController extends GetxController {
       } else {
         permission = Permission.storage;
       }
-
-      bool results = await PermissionService.requestPermission(
+      bool result = await PermissionService.requestPermission(
         context: Get.context!,
         permission: permission,
       );
-      if (!results) {
+      if (!result) {
         return;
       }
     }
@@ -318,7 +316,7 @@ class HomeController extends GetxController {
 
             String? result = await _getSAFPath();
             if (result == null) {
-              _onCustomSnackBar(content: const Text('已取消保存路径选择'));
+              _showSnackBar(content: const Text('已取消保存路径选择'));
               return;
             }
 
@@ -329,7 +327,7 @@ class HomeController extends GetxController {
         } else {
           String? result = await _getSAFPath();
           if (result == null) {
-            _onCustomSnackBar(content: const Text('已取消保存路径选择'));
+            _showSnackBar(content: const Text('已取消保存路径选择'));
             return;
           }
 
@@ -339,7 +337,7 @@ class HomeController extends GetxController {
         }
       }
     } else if (Platform.isIOS) {
-      Directory directory = await getApplicationDocumentsDirectory();
+      Directory directory = await getTemporaryDirectory();
       Directory dirPicEncrypt = await _checkDirectoryExists(directory.path);
       imagePath = p.join(dirPicEncrypt.path, fileName);
     } else {
@@ -354,7 +352,7 @@ class HomeController extends GetxController {
     }
 
     if (imagePath == null) {
-      _onCustomSnackBar(content: const Text('取消保存'));
+      _showSnackBar(content: const Text('取消保存'));
       return;
     }
 
@@ -364,6 +362,27 @@ class HomeController extends GetxController {
       await File(imagePath).writeAsBytes(img.encodeJpg(uiImage.value!));
 
       EasyLoading.dismiss();
+
+      if (Platform.isIOS) {
+        final mapResult = await VisionGallerySaver.saveFile(
+          imagePath,
+          name: p.basenameWithoutExtension(imagePath),
+          isReturnPathOfIOS: true,
+          skipIfExists: true
+        );
+        bool isSuccess = mapResult['isSuccess'];
+        if (!isSuccess) {
+          _showSnackBar(content: const Text('保存到相册失败'));
+        }
+        bool foundExistingFile = mapResult['foundExistingFile'];
+        if (foundExistingFile) {
+          _showSnackBar(content: const Text('相册中已有相同文件名称，保存失败'));
+          return;
+        }
+
+        _showSnackBar(content: const Text('已保存到相册'));
+        return;
+      }
 
       Widget dialog = AlertDialog(
         title: const Text('保存路径'),
@@ -397,12 +416,12 @@ class HomeController extends GetxController {
         // 复制文件路径到剪贴板
         await Clipboard.setData(ClipboardData(text: imagePath));
 
-        _onCustomSnackBar(content: const Text('已复制到剪贴板'));
+        _showSnackBar(content: const Text('已复制到剪贴板'));
       }
     } catch (e, s) {
       EasyLoading.dismiss();
 
-      _onCustomSnackBar(content: const Text('保存文件失败'));
+      _showSnackBar(content: const Text('保存文件失败'));
 
       _logger.e('保存文件失败', error: e, stackTrace: s);
     }
@@ -468,7 +487,7 @@ class HomeController extends GetxController {
         isPicking.value = false;
 
         if (path == null) {
-          _onCustomSnackBar(content: const Text('已取消文件选择'));
+          _showSnackBar(content: const Text('已取消文件选择'));
           return;
         }
 
@@ -481,14 +500,14 @@ class HomeController extends GetxController {
         if (fileMimeType == null) {
           EasyLoading.dismiss();
 
-          _onCustomSnackBar(content: const Text('当前文件类型暂不支持'));
+          _showSnackBar(content: const Text('当前文件类型暂不支持'));
           return;
         }
 
         if (fileMimeType == FileMimeType.gif) {
           EasyLoading.dismiss();
 
-          _onCustomSnackBar(content: const Text('GIF类型文件暂不支持'));
+          _showSnackBar(content: const Text('GIF类型文件暂不支持'));
           return;
         }
 
@@ -506,7 +525,7 @@ class HomeController extends GetxController {
         if (decodedImage == null) {
           EasyLoading.dismiss();
 
-          _onCustomSnackBar(content: const Text('数据解码失败'));
+          _showSnackBar(content: const Text('数据解码失败'));
           return;
         }
 
@@ -515,7 +534,7 @@ class HomeController extends GetxController {
         if (totalPixels > maxPixels) {
           EasyLoading.dismiss();
 
-          _onCustomSnackBar(content: const Text('图片尺寸过大'));
+          _showSnackBar(content: const Text('图片尺寸过大'));
 
           return;
         }
@@ -527,7 +546,7 @@ class HomeController extends GetxController {
       } catch (e, s) {
         isPicking.value = false;
 
-        _onCustomSnackBar(content: const Text('导入图片解码失败'));
+        _showSnackBar(content: const Text('导入图片解码失败'));
 
         _logger.e('导入图片解码失败', error: e, stackTrace: s);
       }
@@ -553,7 +572,7 @@ class HomeController extends GetxController {
       } catch (e, s) {
         isPicking.value = false;
 
-        _onCustomSnackBar(content: const Text('导入图片解码失败'));
+        _showSnackBar(content: const Text('导入图片解码失败'));
 
         _logger.e('导入图片解码失败', error: e, stackTrace: s);
       }
@@ -565,7 +584,7 @@ class HomeController extends GetxController {
     bool value2 = EncryptType.picEncryptRowColConfusion == value;
     if (value1 || value2) {
       inputFormatBean.value = InputFormatBean(
-        formats: [_disableSpaceFormat, _floatFormat, _lengthFloatRangeFormat],
+        formats: [_disableSpaceFormat, _floatFormat],
         keyboardType: TextInputType.number,
         labelText: '范围 0.1 - 0.9 (Range 0.1 - 0.9)',
       );
@@ -573,7 +592,7 @@ class HomeController extends GetxController {
       textController.value.text = _floatRangeKey.toString();
     } else {
       inputFormatBean.value = InputFormatBean(
-        formats: [_disableSpaceFormat, /*_lengthAnyStrFormat*/],
+        formats: [_disableSpaceFormat],
         keyboardType: TextInputType.text,
         labelText: '可为任意字符串(Any String)',
       );
@@ -663,7 +682,7 @@ class HomeController extends GetxController {
     if (newImage == null) {
       EasyLoading.dismiss();
 
-      _onCustomSnackBar(content: const Text('加密失败'));
+      _showSnackBar(content: const Text('加密失败'));
       return;
     }
 
@@ -684,7 +703,7 @@ class HomeController extends GetxController {
     if (newImage == null) {
       EasyLoading.dismiss();
 
-      _onCustomSnackBar(content: const Text('解密失败'));
+      _showSnackBar(content: const Text('解密失败'));
       return;
     }
 
@@ -705,7 +724,7 @@ class HomeController extends GetxController {
     if (newImage == null) {
       EasyLoading.dismiss();
 
-      _onCustomSnackBar(content: const Text('加密失败'));
+      _showSnackBar(content: const Text('加密失败'));
       return;
     }
 
@@ -726,7 +745,7 @@ class HomeController extends GetxController {
     if (newImage == null) {
       EasyLoading.dismiss();
 
-      _onCustomSnackBar(content: const Text('解密失败'));
+      _showSnackBar(content: const Text('解密失败'));
       return;
     }
 
@@ -747,7 +766,7 @@ class HomeController extends GetxController {
     if (newImage == null) {
       EasyLoading.dismiss();
 
-      _onCustomSnackBar(content: const Text('加密失败'));
+      _showSnackBar(content: const Text('加密失败'));
       return;
     }
 
@@ -768,7 +787,7 @@ class HomeController extends GetxController {
     if (newImage == null) {
       EasyLoading.dismiss();
 
-      _onCustomSnackBar(content: const Text('解密失败'));
+      _showSnackBar(content: const Text('解密失败'));
       return;
     }
 
@@ -789,7 +808,7 @@ class HomeController extends GetxController {
     if (newImage == null) {
       EasyLoading.dismiss();
 
-      _onCustomSnackBar(content: const Text('加密失败'));
+      _showSnackBar(content: const Text('加密失败'));
       return;
     }
 
@@ -810,7 +829,7 @@ class HomeController extends GetxController {
     if (newImage == null) {
       EasyLoading.dismiss();
 
-      _onCustomSnackBar(content: const Text('解密失败'));
+      _showSnackBar(content: const Text('解密失败'));
       return;
     }
 
@@ -831,7 +850,7 @@ class HomeController extends GetxController {
     if (newImage == null) {
       EasyLoading.dismiss();
 
-      _onCustomSnackBar(content: const Text('加密失败'));
+      _showSnackBar(content: const Text('加密失败'));
       return;
     }
 
@@ -852,7 +871,7 @@ class HomeController extends GetxController {
     if (newImage == null) {
       EasyLoading.dismiss();
 
-      _onCustomSnackBar(content: const Text('解密失败'));
+      _showSnackBar(content: const Text('解密失败'));
       return;
     }
 
@@ -873,7 +892,7 @@ class HomeController extends GetxController {
     if (newImage == null) {
       EasyLoading.dismiss();
 
-      _onCustomSnackBar(content: const Text('加密失败'));
+      _showSnackBar(content: const Text('加密失败'));
       return;
     }
 
@@ -894,7 +913,7 @@ class HomeController extends GetxController {
     if (newImage == null) {
       EasyLoading.dismiss();
 
-      _onCustomSnackBar(content: const Text('解密失败'));
+      _showSnackBar(content: const Text('解密失败'));
       return;
     }
 
