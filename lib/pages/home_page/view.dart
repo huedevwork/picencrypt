@@ -102,10 +102,10 @@ class HomePage extends GetView<HomeController> {
   }
 
   Widget mainView() {
-    bool isTablet = Get.context?.isTablet ?? false;
     return OrientationBuilder(
       builder: (BuildContext context, Orientation orientation) {
         bool isLandscapeScreen = orientation == Orientation.landscape;
+        bool isTablet = Get.context?.isTablet ?? false;
         if (isTablet && isLandscapeScreen) {
           return tabletLayoutView();
         } else {
