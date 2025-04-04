@@ -46,12 +46,14 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
-    <string>需要访问您的照片库以选择图片</string>
+    <string>Access to your photo library is required to select pictures</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
-    <string>需要访问您的照片库以保存图片</string>
+    <string>Access to your photo library is required to save the pictures</string>
     <key>NSFileProviderUsageDescription</key>
-    <string>需要访问文件以进行读写操作</string>
+    <string>Access to the file is required for read and write operations</string>
     <key>NSFileProviderDomainUsageDescription</key>
-    <string>此应用需要访问您的文件系统以进行文件的读取和写入操作。</string>
+    <string>This app needs access to your file system for read and write to files.</string>
+    <key>NSDocumentsDirectoryUsageDescription</key>
+    <string>This app needs access to your Documents directory in order to save and read your important data.</string>
 </dict>
 </plist>
