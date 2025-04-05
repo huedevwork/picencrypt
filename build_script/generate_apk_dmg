@@ -100,7 +100,7 @@ check_and_install_create_dmg() {
 
 # 函数：生成 DMG 文件
 generate_dmg() {
-    DMG_NAME="${APP_NAME}_macos_${VERSION}_${BUILD_NUMBER}.dmg"
+    DMG_NAME="${APP_NAME}-${VERSION}-macos-arm.dmg"
     DMG_PATH="$PRODUCTS_DIR/$DMG_NAME"
     echo "开始生成 DMG 文件: $DMG_NAME"
     create-dmg \
