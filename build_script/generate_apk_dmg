@@ -1,0 +1,134 @@
+#!/bin/bash
+
+# macos打包脚本，一次打包 APK 和 dmg
+# 使用方式:
+# chmod +x generate_apk_dmg
+# ./generate_apk_dmg
+
+# 获取脚本所在目录的上一级目录作为项目根目录
+PROJECT_ROOT=$(dirname "$(dirname "$(realpath "$0")")")
+# 定义构建输出目录
+BUILD_DIR="$PROJECT_ROOT/build/macos/Build/Products/Release"
+# 定义产物输出目录
+PRODUCTS_DIR="$PROJECT_ROOT/build/macos/Build/Products"
+# 从 pubspec.yaml 中提取版本号
+VERSION=$(grep "version:" "$PROJECT_ROOT/pubspec.yaml" | awk '{print $2}' | cut -d '+' -f 1)
+BUILD_NUMBER=$(grep "version:" "$PROJECT_ROOT/pubspec.yaml" | awk '{print $2}' | cut -d '+' -f 2)
+
+# 函数：清理构建缓存
+clean_build_cache() {
+    echo "清理构建缓存..."
+    fvm flutter clean
+    if [ $? -ne 0 ]; then
+        echo "清理构建缓存失败"
+        exit 1
+    fi
+}
+
+# 函数：构建 APK
+build_apk() {
+    echo "开始构建 APK ..."
+    # 生成 v7a、v8a 合并包
+    fvm flutter build apk
+    if [ $? -ne 0 ]; then
+        echo "构建 v7a、v8a 合并 APK 失败"
+        exit 1
+    fi
+    # 生成 v7a、v8a、x86-64 三种架构的 APK
+    fvm flutter build apk --split-per-abi
+    if [ $? -ne 0 ]; then
+        echo "构建 v7a、v8a、x86-64 三种架构的 APK 失败"
+        exit 1
+    fi
+    echo "APK 构建完成"
+}
+
+# 函数：构建 macOS 应用
+build_macos_app() {
+    echo "开始构建 macOS 应用..."
+    fvm flutter build macos --release
+    if [ $? -ne 0 ]; then
+        echo "构建 macOS 应用失败"
+        exit 1
+    fi
+}
+
+# 函数：等待 .app 文件生成
+wait_for_app_file() {
+    MAX_ATTEMPTS=5
+    ATTEMPT=0
+    while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+        APP_FILE=$(find "$BUILD_DIR" -type d -name "*.app" | head -n 1)
+        if [ -n "$APP_FILE" ]; then
+            APP_NAME=$(basename "$APP_FILE" .app)
+            echo "找到 .app 文件: $APP_NAME"
+            return 0
+        fi
+        echo "未找到 .app 文件，等待 5 秒后重试（第 $((ATTEMPT + 1)) 次尝试）"
+        sleep 5
+        ATTEMPT=$((ATTEMPT + 1))
+    done
+    echo "经过 $MAX_ATTEMPTS 次尝试，仍未找到 .app 文件"
+    exit 1
+}
+
+# 函数：创建产物目录
+create_products_dir() {
+    if [ ! -d "$PRODUCTS_DIR" ]; then
+        mkdir -p "$PRODUCTS_DIR"
+        echo "产物目录 $PRODUCTS_DIR 已创建"
+    else
+        echo "产物目录 $PRODUCTS_DIR 已存在"
+    fi
+}
+
+# 函数：检查并安装 create-dmg
+check_and_install_create_dmg() {
+    if ! command -v create-dmg &> /dev/null
+    then
+        echo "create-dmg 未安装，开始安装..."
+        brew install create-dmg
+        if [ $? -ne 0 ]; then
+            echo "安装 create-dmg 失败"
+            exit 1
+        fi
+        echo "create-dmg 安装成功"
+    else
+        echo "create-dmg 已安装"
+    fi
+}
+
+# 函数：生成 DMG 文件
+generate_dmg() {
+    DMG_NAME="${APP_NAME}_macos_${VERSION}_${BUILD_NUMBER}.dmg"
+    DMG_PATH="$PRODUCTS_DIR/$DMG_NAME"
+    echo "开始生成 DMG 文件: $DMG_NAME"
+    create-dmg \
+        --volname "${APP_NAME} 安装器" \
+        --background "$PROJECT_ROOT/build_script/installer_background.png" \
+        --window-pos 200 120 \
+        --window-size 800 450 \
+        --icon-size 100 \
+        --icon "${APP_NAME}.app" 240 190 \
+        --hide-extension "${APP_NAME}.app" \
+        --app-drop-link 550 190 \
+        "$DMG_PATH" \
+        "$BUILD_DIR"
+    if [ $? -ne 0 ]; then
+        echo "生成 DMG 文件失败"
+        exit 1
+    fi
+    echo "DMG 文件已生成: $DMG_PATH"
+}
+
+# 主执行流程
+clean_build_cache
+build_apk
+build_macos_app
+wait_for_app_file
+create_products_dir
+check_and_install_create_dmg
+generate_dmg
+
+# 打开产物目录
+open "$PRODUCTS_DIR"
