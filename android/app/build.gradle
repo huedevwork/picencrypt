@@ -66,6 +66,28 @@ android {
             signingConfig = signingConfigs.release
         }
     }
+
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'armeabi-v7a', 'arm64-v8a', 'x86_64'
+            universalApk true // 启用生成通用 APK
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.each { apkVariantOutput ->
+            def appName = "picencrypt"
+            def versionName = variant.versionName
+            def abiName = apkVariantOutput.getFilter(com.android.build.OutputFile.ABI)
+            if (abiName == null) {
+                abiName = "universal"
+            }
+            def buildType = variant.buildType.name
+            apkVariantOutput.outputFileName = "${appName}-${versionName}-${abiName}-${buildType}.apk"
+        }
+    }
 }
 
 flutter {

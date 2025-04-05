@@ -1,0 +1,162 @@
+#!/bin/bash
+
+# macos 打包脚本，一次打包 apk、ipa、dmg
+# 使用方式:
+# chmod +x generate_apk_ipa_dmg
+# ./generate_apk_ipa_dmg
+
+# 获取脚本所在目录的上一级目录作为项目根目录
+PROJECT_ROOT=$(dirname "$(dirname "$(realpath "$0")")")
+# 定义新的构建输出目录
+BUILD_DIR="$PROJECT_ROOT/build_install_package"
+# 定义产物输出目录
+PRODUCTS_DIR="$BUILD_DIR"
+# 从 pubspec.yaml 中提取版本号
+VERSION=$(grep "version:" "$PROJECT_ROOT/pubspec.yaml" | awk '{print $2}' | cut -d '+' -f 1)
+BUILD_NUMBER=$(grep "version:" "$PROJECT_ROOT/pubspec.yaml" | awk '{print $2}' | cut -d '+' -f 2)
+
+# 检查并删除 build_install_package 目录
+check_and_remove_build_dir() {
+    if [ -d "$BUILD_DIR" ]; then
+        echo "检测到 build_install_package 目录存在，正在删除..."
+        rm -rf "$BUILD_DIR"
+        if [ $? -ne 0 ]; then
+            echo "删除 build_install_package 目录失败"
+            exit 1
+        fi
+        echo "build_install_package 目录已删除"
+    fi
+}
+
+# 清理构建缓存
+clean_build_cache() {
+    echo "清理构建缓存..."
+    fvm flutter clean;fvm flutter pub get
+    if [ $? -ne 0 ]; then
+        echo "清理构建缓存失败"
+        exit 1
+    fi
+}
+
+# 构建 APK
+build_apk() {
+    echo "开始构建 APK ..."
+    # 使用 Gradle 构建 release 版本的 APK
+    cd "$PROJECT_ROOT/android"
+    ./gradlew assembleRelease
+    if [ $? -ne 0 ]; then
+        echo "构建 APK 失败"
+        exit 1
+    fi
+    cd -
+
+    mkdir -p "$BUILD_DIR/apk"
+    find "$PROJECT_ROOT/build/app/outputs/apk/release" -name "*.apk" -exec cp {} "$BUILD_DIR/apk" \;
+    echo "APK 构建完成，已复制 .apk 文件到 $BUILD_DIR/apk"
+}
+
+# 打包 iOS 应用（不使用签名）
+build_ios_app() {
+    echo "开始构建 iOS 应用（不使用签名）..."
+    fvm flutter build ios --no-codesign
+    if [ $? -ne 0 ]; then
+        echo "构建 iOS 应用失败"
+        exit 1
+    fi
+}
+
+# 将 iOS 应用封装为 ipa
+package_ios_to_ipa() {
+    APP_FILE=$(find "$PROJECT_ROOT/build/ios/iphoneos" -type d -name "*.app" | head -n 1)
+    if [ -z "$APP_FILE" ]; then
+        echo "未找到 .app 文件，无法封装 IPA"
+        exit 1
+    fi
+    APP_NAME=$(basename "$APP_FILE" .app)
+    IPA_NAME="${APP_NAME}-${VERSION}-ios.ipa"
+    IPA_PATH="$PRODUCTS_DIR/$IPA_NAME"
+    TEMP_DIR="$PRODUCTS_DIR/temp_payload"
+
+    mkdir -p "$TEMP_DIR/Payload"
+    cp -r "$APP_FILE" "$TEMP_DIR/Payload"
+
+    echo "开始封装 iOS 应用为 ipa 文件: $IPA_NAME"
+    (cd "$TEMP_DIR" && zip -qr "$IPA_PATH" Payload)
+
+    if [ $? -ne 0 ]; then
+        echo "封装 iOS 应用为 ipa 文件失败"
+        exit 1
+    fi
+
+    rm -rf "$TEMP_DIR"
+
+    echo "IPA 文件已生成: $IPA_PATH"
+}
+
+# 构建 macOS 应用
+build_macos_app() {
+    echo "开始构建 macOS 应用..."
+    fvm flutter build macos --release
+    if [ $? -ne 0 ]; then
+        echo "构建 macOS 应用失败"
+        exit 1
+    fi
+}
+
+# 检查并安装 create - dmg
+check_and_install_create_dmg() {
+    if ! command -v create-dmg &> /dev/null
+    then
+        echo "create-dmg 未安装，开始安装..."
+        brew install create-dmg
+        if [ $? -ne 0 ]; then
+            echo "安装 create-dmg 失败"
+            exit 1
+        fi
+        echo "create-dmg 安装成功"
+    else
+        echo "create-dmg 已安装"
+    fi
+}
+
+# 生成 DMG 文件
+generate_dmg() {
+    APP_FILE=$(find "$PROJECT_ROOT/build/macos/Build/Products/Release" -type d -name "*.app" | head -n 1)
+    if [ -z "$APP_FILE" ]; then
+        echo "未找到 .app 文件，无法生成 DMG"
+        exit 1
+    fi
+    APP_NAME=$(basename "$APP_FILE" .app)
+    DMG_NAME="${APP_NAME}-${VERSION}-macos-arm.dmg"
+    DMG_PATH="$PRODUCTS_DIR/$DMG_NAME"
+    echo "开始生成 DMG 文件: $DMG_NAME"
+    create-dmg \
+        --volname "${APP_NAME} 安装器" \
+        --background "$PROJECT_ROOT/build_script/installer_background.png" \
+        --window-pos 200 120 \
+        --window-size 800 450 \
+        --icon-size 100 \
+        --icon "${APP_NAME}.app" 240 190 \
+        --hide-extension "${APP_NAME}.app" \
+        --app-drop-link 550 190 \
+        "$DMG_PATH" \
+        "$PROJECT_ROOT/build/macos/Build/Products/Release"
+    if [ $? -ne 0 ]; then
+        echo "生成 DMG 文件失败"
+        exit 1
+    fi
+    echo "DMG 文件已生成: $DMG_PATH"
+}
+
+# 主执行流程
+check_and_remove_build_dir
+clean_build_cache
+build_apk
+build_ios_app
+package_ios_to_ipa
+build_macos_app
+check_and_install_create_dmg
+generate_dmg
+
+# 打开产物目录
+open "$PRODUCTS_DIR"
