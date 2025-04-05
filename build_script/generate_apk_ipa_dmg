@@ -41,9 +41,7 @@ clean_build_cache() {
 # 构建 APK
 build_apk() {
     echo "开始构建 APK ..."
-    # 使用 Gradle 构建 release 版本的 APK
-    cd "$PROJECT_ROOT/android"
-    ./gradlew assembleRelease
+    fvm flutter build apk
     if [ $? -ne 0 ]; then
         echo "构建 APK 失败"
         exit 1
