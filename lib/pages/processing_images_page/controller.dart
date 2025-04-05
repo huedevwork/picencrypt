@@ -717,7 +717,12 @@ class ProcessingImagesController extends GetxController {
   Future<void> onChildReset(int index) async {
     List<EncryptImageBean> tempList = List.from(uiImages.value);
 
-    tempList[index] = _images.value[index].copyWith();
+    tempList[index] = _images.value[index].copyWith(
+      inputFormatBean: inputFormatBean.value,
+      encryptType: encryptType.value,
+      anyStrKey: _anyStrKey.value,
+      floatRangeKey: _floatRangeKey.value,
+    );
 
     uiImages.value = List.from(tempList);
   }

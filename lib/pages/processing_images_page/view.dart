@@ -76,10 +76,10 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
         return const Center(child: CircularProgressIndicator());
       }
 
-      bool isTablet = Get.context?.isTablet ?? false;
       return OrientationBuilder(
         builder: (BuildContext context, Orientation orientation) {
           bool isLandscapeScreen = orientation == Orientation.landscape;
+          bool isTablet = Get.context?.isTablet ?? false;
           if (isTablet && isLandscapeScreen) {
             return tabletLayoutView();
           } else {
@@ -91,175 +91,179 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
   }
 
   Widget tabletLayoutView() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              children: [
-                /// 模式选择
-                EncryptModeWidget(
-                  encryptType: controller.encryptType.value,
-                  onChanged: (value) {
-                    controller.onUpdateAllEncryptType(value);
-                  },
-                ),
-                const SizedBox(height: 10),
-
-                /// 密钥
-                EncryptInputWidget(
-                  encryptType: controller.encryptType.value,
-                  focusNode: controller.focusNode.value,
-                  controller: controller.textController.value,
-                  inputFormatBean: controller.inputFormatBean.value,
-                  onChanged: controller.onAllValidateInput,
-                  onSubmitted: controller.onAllValidateInput,
-                ),
-                const SizedBox(height: 10),
-
-                /// 设置效果
-                EncryptButtonWidget(
-                  ignoring: false,
-                  onEncrypt: controller.onAllEncrypt,
-                  onDecrypt: controller.onAllDecrypt,
-                  onReset: controller.onAllReset,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: ListView.builder(
-              itemCount: controller.uiImages.value.length,
-              itemBuilder: (_, index) {
-                final item = controller.uiImages.value[index];
-
-                bool v = index == controller.uiImages.value.length;
-                return Padding(
-                  padding: EdgeInsets.only(bottom: v ? 0 : 10),
-                  child: ImageView(
-                    item: item,
-                    onSelectAMode: () {
-                      controller.setChildEncryptTypeDialog(index);
-                    },
-                    onSetKey: () {
-                      controller.setChildValidateInputDialog(index);
-                    },
-                    onEncrypt: () {
-                      controller.onChildEncrypt(index);
-                    },
-                    onDecrypt: () {
-                      controller.onChildDecrypt(index);
-                    },
-                    onReset: () {
-                      controller.onChildReset(index);
-                    },
-                    onSave: () {
-                      controller.onChildSave(index);
-                    },
-                    onOpenImage: () {
-                      controller.onOpenExamineImage(index);
+    return Obx(() {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                children: [
+                  /// 模式选择
+                  EncryptModeWidget(
+                    encryptType: controller.encryptType.value,
+                    onChanged: (value) {
+                      controller.onUpdateAllEncryptType(value);
                     },
                   ),
-                );
-              },
+                  const SizedBox(height: 10),
+
+                  /// 密钥
+                  EncryptInputWidget(
+                    encryptType: controller.encryptType.value,
+                    focusNode: controller.focusNode.value,
+                    controller: controller.textController.value,
+                    inputFormatBean: controller.inputFormatBean.value,
+                    onChanged: controller.onAllValidateInput,
+                    onSubmitted: controller.onAllValidateInput,
+                  ),
+                  const SizedBox(height: 10),
+
+                  /// 设置效果
+                  EncryptButtonWidget(
+                    ignoring: false,
+                    onEncrypt: controller.onAllEncrypt,
+                    onDecrypt: controller.onAllDecrypt,
+                    onReset: controller.onAllReset,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
+            const SizedBox(width: 10),
+            Expanded(
+              child: ListView.builder(
+                itemCount: controller.uiImages.value.length,
+                itemBuilder: (_, index) {
+                  final item = controller.uiImages.value[index];
+
+                  bool v = index == controller.uiImages.value.length;
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: v ? 0 : 10),
+                    child: ImageView(
+                      item: item,
+                      onSelectAMode: () {
+                        controller.setChildEncryptTypeDialog(index);
+                      },
+                      onSetKey: () {
+                        controller.setChildValidateInputDialog(index);
+                      },
+                      onEncrypt: () {
+                        controller.onChildEncrypt(index);
+                      },
+                      onDecrypt: () {
+                        controller.onChildDecrypt(index);
+                      },
+                      onReset: () {
+                        controller.onChildReset(index);
+                      },
+                      onSave: () {
+                        controller.onChildSave(index);
+                      },
+                      onOpenImage: () {
+                        controller.onOpenExamineImage(index);
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget defaultLayoutView() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          SliverAppBar(
-            snap: true,
-            stretch: true,
-            floating: true,
-            expandedHeight: 180.0,
-            flexibleSpace: Material(
-              color: Theme.of(Get.context!).scaffoldBackgroundColor,
-              child: FlexibleSpaceBar(
-                background: Column(
-                  children: [
-                    /// 模式选择
-                    EncryptModeWidget(
-                      encryptType: controller.encryptType.value,
-                      onChanged: (value) {
-                        controller.onUpdateAllEncryptType(value);
-                      },
-                    ),
-                    const SizedBox(height: 10),
+    return Obx(() {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverAppBar(
+              snap: true,
+              stretch: true,
+              floating: true,
+              expandedHeight: 180.0,
+              flexibleSpace: Material(
+                color: Theme.of(Get.context!).scaffoldBackgroundColor,
+                child: FlexibleSpaceBar(
+                  background: Column(
+                    children: [
+                      /// 模式选择
+                      EncryptModeWidget(
+                        encryptType: controller.encryptType.value,
+                        onChanged: (value) {
+                          controller.onUpdateAllEncryptType(value);
+                        },
+                      ),
+                      const SizedBox(height: 10),
 
-                    /// 密钥
-                    EncryptInputWidget(
-                      encryptType: controller.encryptType.value,
-                      focusNode: controller.focusNode.value,
-                      controller: controller.textController.value,
-                      inputFormatBean: controller.inputFormatBean.value,
-                      onChanged: controller.onAllValidateInput,
-                      onSubmitted: controller.onAllValidateInput,
-                    ),
-                    const SizedBox(height: 10),
+                      /// 密钥
+                      EncryptInputWidget(
+                        encryptType: controller.encryptType.value,
+                        focusNode: controller.focusNode.value,
+                        controller: controller.textController.value,
+                        inputFormatBean: controller.inputFormatBean.value,
+                        onChanged: controller.onAllValidateInput,
+                        onSubmitted: controller.onAllValidateInput,
+                      ),
+                      const SizedBox(height: 10),
 
-                    /// 设置效果
-                    EncryptButtonWidget(
-                      ignoring: false,
-                      onEncrypt: controller.onAllEncrypt,
-                      onDecrypt: controller.onAllDecrypt,
-                      onReset: controller.onAllReset,
-                    ),
-                  ],
+                      /// 设置效果
+                      EncryptButtonWidget(
+                        ignoring: false,
+                        onEncrypt: controller.onAllEncrypt,
+                        onDecrypt: controller.onAllDecrypt,
+                        onReset: controller.onAllReset,
+                      ),
+                    ],
+                  ),
                 ),
               ),
+              automaticallyImplyLeading: false,
             ),
-            automaticallyImplyLeading: false,
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final item = controller.uiImages.value[index];
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                  final item = controller.uiImages.value[index];
 
-                bool v = index == controller.uiImages.value.length;
-                return Padding(
-                  padding: EdgeInsets.only(bottom: v ? 0 : 10),
-                  child: ImageView(
-                    item: item,
-                    onSelectAMode: () {
-                      controller.setChildEncryptTypeDialog(index);
-                    },
-                    onSetKey: () {
-                      controller.setChildValidateInputDialog(index);
-                    },
-                    onEncrypt: () {
-                      controller.onChildEncrypt(index);
-                    },
-                    onDecrypt: () {
-                      controller.onChildDecrypt(index);
-                    },
-                    onReset: () {
-                      controller.onChildReset(index);
-                    },
-                    onSave: () {
-                      controller.onChildSave(index);
-                    },
-                    onOpenImage: () {
-                      controller.onOpenExamineImage(index);
-                    },
-                  ),
-                );
-              },
-              childCount: controller.uiImages.value.length,
+                  bool v = index == controller.uiImages.value.length;
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: v ? 0 : 10),
+                    child: ImageView(
+                      item: item,
+                      onSelectAMode: () {
+                        controller.setChildEncryptTypeDialog(index);
+                      },
+                      onSetKey: () {
+                        controller.setChildValidateInputDialog(index);
+                      },
+                      onEncrypt: () {
+                        controller.onChildEncrypt(index);
+                      },
+                      onDecrypt: () {
+                        controller.onChildDecrypt(index);
+                      },
+                      onReset: () {
+                        controller.onChildReset(index);
+                      },
+                      onSave: () {
+                        controller.onChildSave(index);
+                      },
+                      onOpenImage: () {
+                        controller.onOpenExamineImage(index);
+                      },
+                    ),
+                  );
+                },
+                childCount: controller.uiImages.value.length,
+              ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 }
 

@@ -470,7 +470,6 @@ class HomeController extends GetxController {
           path = await singleFileServices();
         } else {
           final downloadsDir = await getDownloadsDirectory();
-
           FilePickerResult? result = await FilePicker.platform.pickFiles(
             initialDirectory: downloadsDir?.path,
             type: FileType.image,

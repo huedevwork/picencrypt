@@ -7,7 +7,9 @@ import 'package:picencrypt/common/local_storage.dart';
 
 Future<List<String>?> multipleFileServices() async {
   try {
+    final downloadsDir = await getDownloadsDirectory();
     FilePickerResult? result = await FilePicker.platform.pickFiles(
+      initialDirectory: downloadsDir?.path,
       type: FileType.image,
       allowCompression: false,
       compressionQuality: 100,
