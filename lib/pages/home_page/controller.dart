@@ -14,9 +14,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:picencrypt/common/local_storage.dart';
 import 'package:picencrypt/router/app_pages.dart';
-import 'package:picencrypt/service/open_platform_image_view.dart';
-import 'package:picencrypt/service/permission_service.dart';
-import 'package:picencrypt/service/single_file_services.dart';
+import 'package:picencrypt/service/application_service/open_platform_image_view.dart';
+import 'package:picencrypt/service/application_service/permission_service.dart';
+import 'package:picencrypt/service/application_service/single_file_services.dart';
 import 'package:picencrypt/utils/cache_manager_util.dart';
 import 'package:picencrypt/utils/compute_util.dart';
 import 'package:picencrypt/utils/create_file_name_util.dart';
@@ -27,8 +27,8 @@ import 'package:picencrypt/widgets/process_selection_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vision_gallery_saver/vision_gallery_saver.dart';
 
-import '../../service/folder_services.dart';
-import '../../service/multiple_file_services.dart';
+import '../../service/application_service/folder_services.dart';
+import '../../service/application_service/multiple_file_services.dart';
 import 'bean/encrypt_type.dart';
 import 'bean/input_format_bean.dart';
 

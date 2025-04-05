@@ -8,7 +8,7 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:picencrypt/service/permission_service.dart';
+import 'package:picencrypt/service/application_service/permission_service.dart';
 
 class LoggerUtils {
   static final LoggerUtils _instance = LoggerUtils._internal();
