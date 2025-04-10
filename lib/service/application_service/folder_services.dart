@@ -15,7 +15,7 @@ Future<List<String>?> folderServices() async {
     }
 
     Directory directory = Directory(directoryPath);
-    List<FileSystemEntity> files = directory.listSync();
+    List<FileSystemEntity> files = directory.listSync(recursive: true);
 
     final fileSuffixTypes = [
       FileMimeType.jpeg,
