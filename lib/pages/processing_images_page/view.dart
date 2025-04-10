@@ -16,11 +16,16 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      floatingActionButtonLocation: FloatingActionButtonLocation.miniStartFloat,
-      floatingActionButton: floatingActionButtonView(),
-      body: SafeArea(child: mainView()),
-    );
+    return Obx(() {
+      return PopScope(
+        canPop: !controller.isLoading.value,
+        child: Scaffold(
+          floatingActionButtonLocation: FloatingActionButtonLocation.miniStartFloat,
+          floatingActionButton: floatingActionButtonView(),
+          body: SafeArea(child: mainView()),
+        ),
+      );
+    });
   }
 
   Widget floatingActionButtonView() {
@@ -46,33 +51,41 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
             ],
           ),
         ),
-        const SizedBox(height: 10),
-        FloatingActionButton(
-          heroTag: 'onAllSave',
-          onPressed: controller.onAllSave,
-          tooltip: '保存列表所有图片',
-          backgroundColor: Colors.white,
-          enableFeedback: true,
-          child: const Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.save),
-              AutoSizeText(
-                '保存列表',
-                style: TextStyle(color: Colors.black, fontSize: 12),
-                maxLines: 1,
-              ),
-            ],
-          ),
-        ),
+        Obx(() {
+          return controller.isLoading.value
+              ? const SizedBox()
+              : Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    FloatingActionButton(
+                      heroTag: 'onAllSave',
+                      onPressed: controller.onAllSave,
+                      tooltip: '保存列表所有图片',
+                      backgroundColor: Colors.white,
+                      enableFeedback: true,
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.save),
+                          AutoSizeText(
+                            '保存列表',
+                            style: TextStyle(color: Colors.black, fontSize: 12),
+                            maxLines: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+        }),
       ],
     );
   }
 
   Widget mainView() {
     return Obx(() {
-      if (controller.init.value) {
+      if (controller.isLoading.value) {
         return const Center(child: CircularProgressIndicator());
       }
 
@@ -225,7 +238,7 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
             ),
             SliverList(
               delegate: SliverChildBuilderDelegate(
-                    (context, index) {
+                (context, index) {
                   final item = controller.uiImages.value[index];
 
                   bool v = index == controller.uiImages.value.length;

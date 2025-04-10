@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:photo_view/photo_view.dart';
 
-import 'examine_image_controller.dart';
+import 'controller.dart';
 
 class ExamineImagePage extends GetView<ExamineImageController> {
   const ExamineImagePage({super.key});

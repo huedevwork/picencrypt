@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 
-import 'examine_image_controller.dart';
+import 'controller.dart';
 
 class ExamineImageBinding extends Bindings {
   @override

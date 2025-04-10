@@ -14,11 +14,14 @@ class HomePage extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      floatingActionButtonLocation: FloatingActionButtonLocation.miniStartFloat,
-      floatingActionButton: floatingActionButtonView(),
-      body: SafeArea(child: mainView()),
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        floatingActionButtonLocation: FloatingActionButtonLocation.miniStartFloat,
+        floatingActionButton: floatingActionButtonView(),
+        body: SafeArea(child: mainView()),
+      ),
     );
   }
 

@@ -32,7 +32,7 @@ class ProcessingImagesController extends GetxController {
 
   final LocalStorage _localStorage = LocalStorage();
 
-  RxBool init = true.obs;
+  RxBool isLoading = true.obs;
   Rx<List<EncryptImageBean>> uiImages = Rx<List<EncryptImageBean>>([]);
   final Rx<List<EncryptImageBean>> _images = Rx<List<EncryptImageBean>>([]);
 
@@ -76,49 +76,41 @@ class ProcessingImagesController extends GetxController {
       dataList.add(bytes);
     }
 
-    List<img.Image> imageList = await ComputeUtil.handle(
+    List<(img.Image image, Uint8List data)> results = await ComputeUtil.handle(
       params: dataList,
       entryLogic: (tempList) {
-        List<img.Image> imageList = [];
+        List<(img.Image image, Uint8List data)> list = [];
         for (Uint8List bytes in tempList) {
           img.Image? decodedImage = img.decodeImage(bytes);
           if (decodedImage == null) {
             continue;
           }
-          imageList.add(img.Image.from(decodedImage));
+          Uint8List data = Uint8List.fromList(img.encodeJpg(decodedImage));
+          list.add((decodedImage, data));
         }
-        return imageList;
+        return list;
       },
     );
 
-    List<Uint8List> renderingDataList = await ComputeUtil.handle(
-      params: imageList,
-      entryLogic: (tempList) {
-        return tempList.map((image) {
-          return Uint8List.fromList(img.encodeJpg(image));
-        }).toList();
-      },
-    );
-
-    List<EncryptImageBean> list = [];
-    for (int i = 0; i < imageList.length; i++) {
-      img.Image image = imageList[i];
+    List<EncryptImageBean> items = [];
+    for (int i = 0; i < results.length; i++) {
+      img.Image image = results[i].$1;
       EncryptImageBean item = EncryptImageBean(
         image: image,
-        renderingData: renderingDataList[i],
+        renderingData: results[i].$2,
         inputFormatBean: InputFormatBean(
           formats: [_disableSpaceFormat],
           keyboardType: TextInputType.text,
           labelText: '可为任意字符串(Any String)',
         ),
       );
-      list.add(item);
+      items.add(item);
     }
 
-    uiImages.value = List.from(list);
-    _images.value = List.from(list);
+    uiImages.value = List.from(items);
+    _images.value = List.from(items);
 
-    init.value = false;
+    isLoading.value = false;
 
     if (Platform.isAndroid || Platform.isIOS) {
       CacheManagerUtil.clearCache();
@@ -130,6 +122,7 @@ class ProcessingImagesController extends GetxController {
 
   @override
   void onClose() {
+    EasyLoading.dismiss();
     _images.close();
     uiImages.close();
     focusNode.close();
