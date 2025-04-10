@@ -71,7 +71,7 @@ package_ios_to_ipa() {
         exit 1
     fi
     APP_NAME=$(basename "$APP_FILE" .app)
-    IPA_NAME="${APP_NAME}-${VERSION}-ios.ipa"
+    IPA_NAME="${APP_NAME}-${VERSION}-release-ios.ipa"
     IPA_PATH="$PRODUCTS_DIR/$IPA_NAME"
     TEMP_DIR="$PRODUCTS_DIR/temp_payload"
 
@@ -125,7 +125,7 @@ generate_dmg() {
         exit 1
     fi
     APP_NAME=$(basename "$APP_FILE" .app)
-    DMG_NAME="${APP_NAME}-${VERSION}-macos-arm.dmg"
+    DMG_NAME="${APP_NAME}-${VERSION}-release-macos-arm64.dmg"
     DMG_PATH="$PRODUCTS_DIR/$DMG_NAME"
     echo "开始生成 DMG 文件: $DMG_NAME"
     create-dmg \
