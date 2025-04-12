@@ -181,6 +181,7 @@ class HomePage extends GetView<HomeController> {
                         return Container(
                           width: constraints.maxWidth,
                           height: constraints.maxHeight,
+                          alignment: Alignment.center,
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.black),
                           ),
@@ -263,6 +264,7 @@ class HomePage extends GetView<HomeController> {
                   return Container(
                     width: constraints.maxWidth,
                     height: constraints.maxHeight,
+                    alignment: Alignment.center,
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.black),
                     ),

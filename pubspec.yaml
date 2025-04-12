@@ -37,6 +37,7 @@ dependencies:
   uuid: any
   mime: any
   logger: any
+  scrollview_observer: any
 
   picencrypt_converter:
     path: package/picencrypt_converter

@@ -24,6 +24,7 @@ import 'package:picencrypt/utils/logger_utils.dart';
 import 'package:picencrypt/utils/pic_encrypt_util.dart';
 import 'package:picencrypt/widgets/dialog_mode_select.dart';
 import 'package:picencrypt/widgets/dialog_textField.dart';
+import 'package:scrollview_observer/scrollview_observer.dart';
 
 import 'model.dart';
 
@@ -61,10 +62,31 @@ class ProcessingImagesController extends GetxController {
     TextEditingController(text: '0.666'),
   );
 
+  late Rx<ListObserverController> observerController;
+  Rx<ScrollController> scrollController = Rx(ScrollController());
+  RxBool showBackToTopButton = false.obs;
+
   @override
   void onInit() {
+    observerController = Rx(ListObserverController(
+      controller: scrollController.value,
+    ));
+
     _onInit();
     super.onInit();
+  }
+
+  @override
+  void onReady() {}
+
+  @override
+  void onClose() {
+    EasyLoading.dismiss();
+    _images.close();
+    uiImages.close();
+    focusNode.close();
+    textController.close();
+    scrollController.close();
   }
 
   Future<void> _onInit() async {
@@ -117,19 +139,9 @@ class ProcessingImagesController extends GetxController {
     }
   }
 
-  @override
-  void onReady() {}
-
-  @override
-  void onClose() {
-    EasyLoading.dismiss();
-    _images.close();
-    uiImages.close();
-    focusNode.close();
-    textController.close();
-  }
-
   Future<void> onOpenExamineImage(int index) async {
+    isLoading.value = true;
+
     img.Image image = uiImages.value[index].image;
 
     if (Platform.isAndroid || Platform.isIOS) {
@@ -146,6 +158,8 @@ class ProcessingImagesController extends GetxController {
     } else {
       openPlatformImageService(image);
     }
+
+    isLoading.value = false;
   }
 
   void onUpdateAllEncryptType(EncryptType value) {
@@ -258,6 +272,22 @@ class ProcessingImagesController extends GetxController {
     tempList[index] = result;
 
     uiImages.value = List.from(tempList);
+  }
+
+  void onObserve(ListViewObserveModel model) {
+    // int firstIndex = model.displayingChildIndexList.first;
+    // int lastIndex = model.displayingChildIndexList.last;
+    // debugPrint('firstIndex: $firstIndex, lastIndex: $lastIndex');
+
+    showBackToTopButton.value = model.displayingChildIndexList.last >= 5;
+  }
+
+  void onBackToTop() {
+    scrollController.value.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.decelerate,
+    );
   }
 
   Future<void> onAllSave() async {
