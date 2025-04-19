@@ -96,14 +96,13 @@ class HomeController extends GetxController {
     textController.close();
   }
 
-  void _showSnackBar({
-    required Widget content,
-    Duration duration = const Duration(seconds: 5),
-  }) {
-    ScaffoldMessenger.of(Get.context!).showSnackBar(SnackBar(
-      content: content,
-      duration: duration,
-    ));
+  void _showSnackBar({String title = '', String message = ''}) {
+    Get.snackbar(
+      title,
+      message,
+      colorText: Colors.white,
+      backgroundColor: Colors.black54,
+    );
   }
 
   void onClear() {
@@ -168,31 +167,26 @@ class HomeController extends GetxController {
       return;
     }
 
-    var result = await showDialog(
-      context: Get.context!,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text('已导出日志'),
-          content: Text('日志保存路径:\n$path'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(Get.context!).pop(true),
-              child: const Text('复制到剪贴板'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(Get.context!).pop(),
-              child: const Text('确定'),
-            ),
-          ],
-        );
-      },
+    var result = await Get.defaultDialog(
+      title: '已导出日志',
+      content: Text('日志保存路径:\n$path'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(Get.context!).pop(true),
+          child: const Text('复制到剪贴板'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(Get.context!).pop(),
+          child: const Text('确定'),
+        ),
+      ],
     );
 
     if (result == true) {
       // 复制文件路径到剪贴板
       await Clipboard.setData(ClipboardData(text: path));
 
-      _showSnackBar(content: const Text('已复制到剪贴板'));
+      _showSnackBar(title: '复制', message: '已复制到剪贴板');
     }
   }
 
@@ -316,7 +310,7 @@ class HomeController extends GetxController {
 
             String? result = await _getSAFPath();
             if (result == null) {
-              _showSnackBar(content: const Text('已取消保存路径选择'));
+              _showSnackBar(title: '取消', message: '已取消保存路径选择');
               return;
             }
 
@@ -327,7 +321,7 @@ class HomeController extends GetxController {
         } else {
           String? result = await _getSAFPath();
           if (result == null) {
-            _showSnackBar(content: const Text('已取消保存路径选择'));
+            _showSnackBar(title: '取消', message: '已取消保存路径选择');
             return;
           }
 
@@ -352,7 +346,7 @@ class HomeController extends GetxController {
     }
 
     if (imagePath == null) {
-      _showSnackBar(content: const Text('取消保存'));
+      _showSnackBar(title: '取消', message: '取消保存');
       return;
     }
 
@@ -372,20 +366,20 @@ class HomeController extends GetxController {
         );
         bool isSuccess = mapResult['isSuccess'];
         if (!isSuccess) {
-          _showSnackBar(content: const Text('保存到相册失败'));
+          _showSnackBar(title: '失败', message: '保存到相册失败');
         }
         bool foundExistingFile = mapResult['foundExistingFile'];
         if (foundExistingFile) {
-          _showSnackBar(content: const Text('相册中已有相同文件名称，保存失败'));
+          _showSnackBar(title: '失败', message: '相册中已有相同文件名称，保存失败');
           return;
         }
 
-        _showSnackBar(content: const Text('已保存到相册'));
+        _showSnackBar(title: '成功', message: '已保存到相册');
         return;
       }
 
-      Widget dialog = AlertDialog(
-        title: const Text('保存路径'),
+      bool? result = await Get.defaultDialog(
+        title: '保存路径',
         content: Text(imagePath),
         actions: [
           TextButton(
@@ -394,34 +388,17 @@ class HomeController extends GetxController {
           ),
         ],
       );
-      if (Platform.isIOS) {
-        dialog = CupertinoAlertDialog(
-          title: const Text('保存路径'),
-          content: Text(imagePath),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(Get.context!).pop(true),
-              child: const Text('复制到剪贴板'),
-            ),
-          ],
-        );
-      }
 
-      bool? results = await showDialog<bool>(
-        context: Get.context!,
-        builder: (_) => dialog,
-      );
-
-      if (results == true) {
+      if (result == true) {
         // 复制文件路径到剪贴板
         await Clipboard.setData(ClipboardData(text: imagePath));
 
-        _showSnackBar(content: const Text('已复制到剪贴板'));
+        _showSnackBar(title: '成功', message: '已复制到剪贴板');
       }
     } catch (e, s) {
       EasyLoading.dismiss();
 
-      _showSnackBar(content: const Text('保存文件失败'));
+      _showSnackBar(title: '成功', message: '保存文件失败');
 
       _logger.e('保存文件失败', error: e, stackTrace: s);
     }
@@ -486,7 +463,7 @@ class HomeController extends GetxController {
         isPicking.value = false;
 
         if (path == null) {
-          _showSnackBar(content: const Text('已取消文件选择'));
+          _showSnackBar(title: '取消', message: '已取消文件选择');
           return;
         }
 
@@ -499,14 +476,14 @@ class HomeController extends GetxController {
         if (fileMimeType == null) {
           EasyLoading.dismiss();
 
-          _showSnackBar(content: const Text('当前文件类型暂不支持'));
+          _showSnackBar(title: '不支持', message: '当前文件类型暂不支持');
           return;
         }
 
         if (fileMimeType == FileMimeType.gif) {
           EasyLoading.dismiss();
 
-          _showSnackBar(content: const Text('GIF类型文件暂不支持'));
+          _showSnackBar(title: '不支持', message: 'GIF类型文件暂不支持');
           return;
         }
 
@@ -524,7 +501,7 @@ class HomeController extends GetxController {
         if (decodedImage == null) {
           EasyLoading.dismiss();
 
-          _showSnackBar(content: const Text('数据解码失败'));
+          _showSnackBar(title: '失败', message: '数据解码失败');
           return;
         }
 
@@ -533,8 +510,7 @@ class HomeController extends GetxController {
         if (totalPixels > maxPixels) {
           EasyLoading.dismiss();
 
-          _showSnackBar(content: const Text('图片尺寸过大'));
-
+          _showSnackBar(title: '失败', message: '图片尺寸过大');
           return;
         }
 
@@ -545,7 +521,7 @@ class HomeController extends GetxController {
       } catch (e, s) {
         isPicking.value = false;
 
-        _showSnackBar(content: const Text('导入图片解码失败'));
+        _showSnackBar(title: '失败', message: '导入图片解码失败');
 
         _logger.e('导入图片解码失败', error: e, stackTrace: s);
       }
@@ -571,7 +547,7 @@ class HomeController extends GetxController {
       } catch (e, s) {
         isPicking.value = false;
 
-        _showSnackBar(content: const Text('导入图片解码失败'));
+        _showSnackBar(title: '失败', message: '导入图片解码失败');
 
         _logger.e('导入图片解码失败', error: e, stackTrace: s);
       }
@@ -686,8 +662,8 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
     } catch (e) {
       EasyLoading.dismiss();
-
-      _showSnackBar(content: const Text('加密失败'));
+      
+      _showSnackBar(title: '失败', message: '混淆失败');
     }
   }
 
@@ -706,8 +682,8 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
     } catch (e) {
       EasyLoading.dismiss();
-
-      _showSnackBar(content: const Text('解密失败'));
+      
+      _showSnackBar(title: '失败', message: '解混淆失败');
     }
   }
 
@@ -727,7 +703,7 @@ class HomeController extends GetxController {
     } catch (e) {
       EasyLoading.dismiss();
 
-      _showSnackBar(content: const Text('加密失败'));
+      _showSnackBar(title: '失败', message: '混淆失败');
     }
   }
 
@@ -747,7 +723,7 @@ class HomeController extends GetxController {
     } catch (e) {
       EasyLoading.dismiss();
 
-      _showSnackBar(content: const Text('解密失败'));
+      _showSnackBar(title: '失败', message: '解混淆失败');
     }
   }
 
@@ -767,7 +743,7 @@ class HomeController extends GetxController {
     } catch (e) {
       EasyLoading.dismiss();
 
-      _showSnackBar(content: const Text('加密失败'));
+      _showSnackBar(title: '失败', message: '混淆失败');
     }
   }
 
@@ -787,7 +763,7 @@ class HomeController extends GetxController {
     } catch (e) {
       EasyLoading.dismiss();
 
-      _showSnackBar(content: const Text('解密失败'));
+      _showSnackBar(title: '失败', message: '解混淆失败');
     }
   }
 
@@ -807,7 +783,7 @@ class HomeController extends GetxController {
     } catch (e) {
       EasyLoading.dismiss();
 
-      _showSnackBar(content: const Text('加密失败'));
+      _showSnackBar(title: '失败', message: '混淆失败');
     }
   }
 
@@ -827,7 +803,7 @@ class HomeController extends GetxController {
     } catch (e) {
       EasyLoading.dismiss();
 
-      _showSnackBar(content: const Text('解密失败'));
+      _showSnackBar(title: '失败', message: '解混淆失败');
     }
   }
 
@@ -847,7 +823,7 @@ class HomeController extends GetxController {
     } catch (e) {
       EasyLoading.dismiss();
 
-      _showSnackBar(content: const Text('加密失败'));
+      _showSnackBar(title: '失败', message: '混淆失败');
     }
   }
 
@@ -867,7 +843,7 @@ class HomeController extends GetxController {
     } catch (e) {
       EasyLoading.dismiss();
 
-      _showSnackBar(content: const Text('解密失败'));
+      _showSnackBar(title: '失败', message: '解混淆失败');
     }
   }
 
@@ -886,7 +862,7 @@ class HomeController extends GetxController {
     } catch (e) {
       EasyLoading.dismiss();
 
-      _showSnackBar(content: const Text('加密失败'));
+      _showSnackBar(title: '失败', message: '混淆失败');
     }
   }
 
@@ -906,7 +882,7 @@ class HomeController extends GetxController {
     } catch (e) {
       EasyLoading.dismiss();
 
-      _showSnackBar(content: const Text('解密失败'));
+      _showSnackBar(title: '失败', message: '解混淆失败');
     }
   }
 }

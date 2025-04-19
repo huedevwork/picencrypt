@@ -53,6 +53,37 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
           ),
         ),
         Obx(() {
+          bool value1 = !controller.isLoading.value;
+          bool value2 = controller.isMobileDevices.value;
+          bool value = value1 && value2;
+          return !value
+              ? const SizedBox()
+              : Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    FloatingActionButton(
+                      heroTag: 'onOpenImageViewer',
+                      onPressed: controller.onOpenImageViewer,
+                      tooltip: '查看所有图片',
+                      backgroundColor: Colors.white,
+                      enableFeedback: true,
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.remove_red_eye_outlined),
+                          AutoSizeText(
+                            '查看所有图片',
+                            style: TextStyle(color: Colors.black, fontSize: 12),
+                            maxLines: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+        }),
+        Obx(() {
           return controller.isLoading.value
               ? const SizedBox()
               : Column(

@@ -69,8 +69,12 @@ class ProcessingImagesController extends GetxController {
   RxInt total = 0.obs;
   RxDouble progress = 0.0.obs;
 
+  RxBool isMobileDevices = false.obs;
+
   @override
   void onInit() {
+    isMobileDevices.value = (Platform.isAndroid || Platform.isAndroid);
+
     observerController = Rx(ListObserverController(
       controller: scrollController.value,
     ));
@@ -92,14 +96,13 @@ class ProcessingImagesController extends GetxController {
     scrollController.close();
   }
 
-  void _showSnackBar({
-    required Widget content,
-    Duration duration = const Duration(seconds: 5),
-  }) {
-    ScaffoldMessenger.of(Get.context!).showSnackBar(SnackBar(
-      content: content,
-      duration: duration,
-    ));
+  void _showSnackBar({String title = '', String message = ''}) {
+    Get.snackbar(
+      title,
+      message,
+      colorText: Colors.white,
+      backgroundColor: Colors.black54,
+    );
   }
 
   Future<void> _onInit() async {
@@ -152,7 +155,7 @@ class ProcessingImagesController extends GetxController {
   Future<void> onOpenExamineImage(int index) async {
     img.Image image = uiImages.value[index].image;
 
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (isMobileDevices.value) {
       isLoading.value = true;
 
       await EasyLoading.show(status: 'Loading...');
@@ -170,6 +173,25 @@ class ProcessingImagesController extends GetxController {
     } else {
       openPlatformImageService(image);
     }
+  }
+
+  Future<void> onOpenImageViewer() async {
+    isLoading.value = true;
+
+    await EasyLoading.show(status: 'Loading...');
+
+    List<Uint8List> imageBytes = uiImages.value.map((e) {
+      return e.renderingData;
+    }).toList();
+
+    EasyLoading.dismiss();
+
+    Get.toNamed(
+      AppRoutes.imageViewer,
+      arguments: imageBytes,
+    );
+
+    isLoading.value = false;
   }
 
   void onUpdateAllEncryptType(EncryptType value) {
@@ -400,7 +422,7 @@ class ProcessingImagesController extends GetxController {
       return;
     }
 
-    await EasyLoading.showProgress(0.0, status: 'Loading...');
+    await EasyLoading.show(status: 'Loading...');
 
     List<EncryptImageBean> tempImages = List.from(uiImages.value);
 
@@ -505,7 +527,7 @@ class ProcessingImagesController extends GetxController {
   /// 混淆
   Future<void> onAllEncrypt() async {
     var start = DateTime.now();
-    await EasyLoading.showProgress(0.0, status: 'Loading...');
+    await EasyLoading.show(status: 'Loading...');
 
     try {
       List<(EncryptType, EncryptImageBean)> tempList = uiImages.value.map((e) {
@@ -570,9 +592,9 @@ class ProcessingImagesController extends GetxController {
         },
       );
 
-      String text = '${encryptType.value.typeName}\n混淆耗时: ${DateTime.now().difference(start)}';
-      debugPrint(text);
-      _showSnackBar(content: Text(text));
+      String message = '混淆耗时: ${DateTime.now().difference(start)}';
+      debugPrint(message);
+      _showSnackBar(title: encryptType.value.typeName, message: message);
 
       uiImages.value = List.from(results);
 
@@ -587,7 +609,7 @@ class ProcessingImagesController extends GetxController {
   /// 解混淆
   Future<void> onAllDecrypt() async {
     var start = DateTime.now();
-    await EasyLoading.showProgress(0.0, status: 'Loading...');
+    await EasyLoading.show(status: 'Loading...');
 
     try {
       List<(EncryptType, EncryptImageBean)> tempList = uiImages.value.map((e) {
@@ -652,9 +674,9 @@ class ProcessingImagesController extends GetxController {
         },
       );
 
-      String text = '${encryptType.value.typeName}\n解混淆耗时: ${DateTime.now().difference(start)}';
-      debugPrint(text);
-      _showSnackBar(content: Text(text));
+      String message = '解混淆耗时: ${DateTime.now().difference(start)}';
+      debugPrint(message);
+      _showSnackBar(title: encryptType.value.typeName, message: message);
 
       uiImages.value = List.from(results);
 
@@ -902,7 +924,7 @@ class ProcessingImagesController extends GetxController {
     } catch (e) {
       EasyLoading.dismiss();
 
-      _showSnackBar(content: const Text('混淆失败'));
+      _showSnackBar(title: '失败', message: '混淆失败');
     }
   }
 
@@ -976,7 +998,7 @@ class ProcessingImagesController extends GetxController {
     } catch (e) {
       EasyLoading.dismiss();
 
-      _showSnackBar(content: const Text('解混淆失败'));
+      _showSnackBar(title: '失败', message: '解混淆失败');
     }
   }
 
