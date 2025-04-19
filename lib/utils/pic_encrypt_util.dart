@@ -12,7 +12,7 @@ class PicEncryptUtil {
       return await ComputeUtil.handle(
         param: image,
         processingFunction: (img.Image value) {
-          return BlockPixelConfusionUtil.decodeImg(image: value, key: key);
+          return BlockPixelConfusionUtil.encodeImg(image: value, key: key);
         },
       );
     } catch (e) {

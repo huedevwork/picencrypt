@@ -212,7 +212,7 @@ class HomePage extends GetView<HomeController> {
 
   Widget defaultLayoutView() {
     return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+      behavior: HitTestBehavior.translucent,
       onTap: () {
         if (controller.focusNode.value.hasFocus) {
           controller.focusNode.value.unfocus();

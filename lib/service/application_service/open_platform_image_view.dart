@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -21,8 +20,6 @@ Future<void> openPlatformImageService(Uint8List imageData) async {
     final file = File(filePath);
     await file.writeAsBytes(imageData);
 
-    EasyLoading.dismiss();
-
     if (Platform.isWindows) {
       await Process.start('explorer', [filePath]);
     } else if (Platform.isMacOS) {
@@ -30,8 +27,6 @@ Future<void> openPlatformImageService(Uint8List imageData) async {
     } else if (Platform.isLinux) {
       await Process.run('xdg-open', [filePath]);
     } else {
-      EasyLoading.dismiss();
-
       showDialog(
         context: Get.context!,
         builder: (_) {
@@ -50,8 +45,6 @@ Future<void> openPlatformImageService(Uint8List imageData) async {
       logger.w('Unsupported platform');
     }
   } catch (e, s) {
-    EasyLoading.dismiss();
-
     showDialog(
       context: Get.context!,
       builder: (_) {

@@ -137,36 +137,44 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
             child = defaultLayoutView();
           }
 
-          return Stack(
-            children: [
-              child,
-              Obx(() {
-                bool value = !controller.showBackToTopButton.value;
-                return value
-                    ? const SizedBox()
-                    : Positioned(
-                        bottom: 10.0,
-                        right: 10.0,
-                        child: Tooltip(
-                          message: '置顶',
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(25),
-                            onTap: controller.onBackToTop,
-                            child: Container(
-                              width: 50,
-                              height: 50,
-                              padding: const EdgeInsets.all(5),
-                              decoration: const BoxDecoration(
-                                color: Colors.black12,
-                                shape: BoxShape.circle,
+          return GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              if (controller.focusNode.value.hasFocus) {
+                controller.focusNode.value.unfocus();
+              }
+            },
+            child: Stack(
+              children: [
+                child,
+                Obx(() {
+                  bool value = !controller.showBackToTopButton.value;
+                  return value
+                      ? const SizedBox()
+                      : Positioned(
+                          bottom: 10.0,
+                          right: 10.0,
+                          child: Tooltip(
+                            message: '置顶',
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(25),
+                              onTap: controller.onBackToTop,
+                              child: Container(
+                                width: 50,
+                                height: 50,
+                                padding: const EdgeInsets.all(5),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black12,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.vertical_align_top),
                               ),
-                              child: const Icon(Icons.vertical_align_top),
                             ),
                           ),
-                        ),
-                      );
-              }),
-            ],
+                        );
+                }),
+              ],
+            ),
           );
         },
       );
