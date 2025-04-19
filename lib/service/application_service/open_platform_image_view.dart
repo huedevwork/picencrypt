@@ -1,26 +1,18 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:picencrypt/utils/compute_util.dart';
 import 'package:picencrypt/utils/create_file_name_util.dart';
 import 'package:picencrypt/utils/logger_utils.dart';
 
-Future<void> openPlatformImageService(img.Image image) async {
+Future<void> openPlatformImageService(Uint8List imageData) async {
   final LoggerUtils logger = LoggerUtils();
 
-  await EasyLoading.show(status: 'Loading...');
-
   try {
-    final imageData = await ComputeUtil.handle(
-      param: image,
-      processingFunction: (path) => img.encodeJpg(image),
-    );
-
     String timeName = CreateFileNameUtil.timeName();
 
     final directory = await getTemporaryDirectory();

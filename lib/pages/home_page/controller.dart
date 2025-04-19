@@ -133,22 +133,19 @@ class HomeController extends GetxController {
       return;
     }
 
+    await EasyLoading.show(status: 'Loading...');
+
+    Uint8List imageData = await ComputeUtil.handle(
+      param: image,
+      processingFunction: (image) => img.encodeJpg(image),
+    );
+
+    EasyLoading.dismiss();
+
     if (Platform.isAndroid || Platform.isIOS) {
-      await EasyLoading.show(status: 'Loading...');
-
-      Uint8List imageData = await ComputeUtil.handle(
-        param: image,
-        processingFunction: (image) => img.encodeJpg(image),
-      );
-
-      EasyLoading.dismiss();
-
-      Get.toNamed(
-        AppRoutes.photoView,
-        arguments: imageData,
-      );
+      Get.toNamed(AppRoutes.photoView, arguments: imageData);
     } else {
-      openPlatformImageService(image);
+      openPlatformImageService(imageData);
     }
   }
 
