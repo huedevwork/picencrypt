@@ -71,7 +71,7 @@ android {
         abi {
             enable true
             reset()
-            include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+            include 'armeabi-v7a', 'arm64-v8a', 'x86_64'
             universalApk true
         }
     }
@@ -85,7 +85,7 @@ android {
                 abiName = "universal"
             }
             def buildType = variant.buildType.name
-            apkVariantOutput.outputFileName = "${appName}-${versionName}-${buildType}-${abiName}.apk"
+            apkVariantOutput.outputFileName = "android-${appName}-${versionName}-${buildType}-${abiName}.apk"
         }
     }
 }

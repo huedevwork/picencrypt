@@ -1,16 +1,69 @@
 # PicEncrypt
 
-A new Flutter project.
+PicEncrypt 是一款基于 Flutter 开发的图片加密应用程序，提供六种不同的加密方式，为用户的图片隐私提供一定的保护。
 
-## Getting Started
+## 功能特性
 
-This project is a starting point for a Flutter application.
+**多种加密方式**：支持六种独特的图片加密方法，满足多样化场景下的加密需求。
 
-A few resources to get you started if this is your first Flutter project:
+**简单易用**：拥有简洁直观的用户界面，轻松上手，快速实现图片加密。
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## 加密方式说明
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 1. 方块混淆
+
+将图片分割成方块，对每个方块内的像素进行混淆处理，打乱像素原始排列顺序，隐藏图片原始内容。
+
+### 2. 行像素混淆
+
+对图片的每一行素进行混淆，改变行内像素排列。
+
+### 3. 像素混淆
+
+随机混淆图片中所有像素，彻底打乱像素结构，让图片内容无法直接辨认。
+
+### 4. 兼容 PicEncrypt: 行模式
+
+支持与其他兼容该模式的程序协同使用，保障加密后图片的通用性。
+
+### 5. 兼容 PicEncrypt: 行 + 列模式
+
+融合行与列的混淆算法，进一步增强加密强度，在提升安全性的同时保持良好的兼容性。
+
+### 6. 空间填充曲线混淆
+
+借助空间填充曲线特性，重新排列图片像素，以独特的加密逻辑实现高强度的隐私保护效果。
+
+# 下载最新版本
+[Release](https://github.com/huedevwork/picencrypt/releases/latest)
+
+## 安装与运行
+
+### 安装步骤
+
+确保已在本地安装了 Flutter 开发环境。若未安装，请参照 [Flutter 官方文档](https://flutter.dev/docs/get-started/install) 进行安装。
+
+使用以下命令克隆本项目到本地：
+
+```
+git clone https://github.com/huedevwork/picencrypt.git
+```
+
+进入项目目录：
+
+```
+cd picEncrypt
+```
+
+获取项目依赖：
+
+```
+flutter pub get
+```
+### 运行应用
+
+在终端中执行以下命令，启动 PicEncrypt 应用：
+
+```
+flutter run
+```
