@@ -28,7 +28,7 @@ class EncryptInputWidget extends StatelessWidget {
         opacity: encryptType == EncryptType.gilbert2dConfusion ? 0.3 : 1.0,
         child: Row(
           children: [
-            const Text('密钥(Encryption key)：'),
+            const Text('密钥'),
             Expanded(
               child: TextField(
                 focusNode: focusNode,
