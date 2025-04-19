@@ -32,61 +32,28 @@ class EncryptButtonWidget extends StatelessWidget {
               CustomButton(
                 onPressed: onEncrypt,
                 maximumSize: maximumSize,
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AutoSizeText(
-                      '混淆',
-                      style: TextStyle(color: Colors.black),
-                      maxLines: 1,
-                    ),
-                    AutoSizeText(
-                      '(Encrypt)',
-                      style: TextStyle(color: Colors.black),
-                      maxLines: 1,
-                    ),
-                  ],
+                child: const AutoSizeText(
+                  '混淆',
+                  style: TextStyle(color: Colors.black),
+                  maxLines: 1,
                 ),
               ),
               CustomButton(
                 onPressed: onDecrypt,
                 maximumSize: maximumSize,
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AutoSizeText(
-                      '解混淆',
-                      style: TextStyle(color: Colors.black),
-                      maxLines: 1,
-                    ),
-                    AutoSizeText(
-                      '(Decrypt)',
-                      style: TextStyle(color: Colors.black),
-                      maxLines: 1,
-                    ),
-                  ],
+                child: const AutoSizeText(
+                  '解混淆',
+                  style: TextStyle(color: Colors.black),
+                  maxLines: 1,
                 ),
               ),
               CustomButton(
                 onPressed: onReset,
                 maximumSize: maximumSize,
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AutoSizeText(
-                      '还原',
-                      style: TextStyle(color: Colors.black),
-                      maxLines: 1,
-                    ),
-                    AutoSizeText(
-                      '(Reset)',
-                      style: TextStyle(color: Colors.black),
-                      maxLines: 1,
-                    ),
-                  ],
+                child: const AutoSizeText(
+                  '还原',
+                  style: TextStyle(color: Colors.black),
+                  maxLines: 1,
                 ),
               ),
             ],

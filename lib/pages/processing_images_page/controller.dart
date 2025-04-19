@@ -21,9 +21,9 @@ import 'package:picencrypt/utils/cache_manager_util.dart';
 import 'package:picencrypt/utils/compute_util.dart';
 import 'package:picencrypt/utils/create_file_name_util.dart';
 import 'package:picencrypt/utils/logger_utils.dart';
-import 'package:picencrypt/utils/pic_encrypt_util.dart';
 import 'package:picencrypt/widgets/dialog_mode_select.dart';
 import 'package:picencrypt/widgets/dialog_textField.dart';
+import 'package:picencrypt_converter/picencrypt_converter.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
 
 import 'model.dart';
@@ -50,7 +50,7 @@ class ProcessingImagesController extends GetxController {
     InputFormatBean(
       formats: [_disableSpaceFormat],
       keyboardType: TextInputType.text,
-      labelText: '可为任意字符串(Any String)',
+      labelText: '可为任意字符串',
     ),
   );
 
@@ -65,6 +65,9 @@ class ProcessingImagesController extends GetxController {
   late Rx<ListObserverController> observerController;
   Rx<ScrollController> scrollController = Rx(ScrollController());
   RxBool showBackToTopButton = false.obs;
+
+  RxInt total = 0.obs;
+  RxDouble progress = 0.0.obs;
 
   @override
   void onInit() {
@@ -91,6 +94,7 @@ class ProcessingImagesController extends GetxController {
 
   Future<void> _onInit() async {
     List<String> imagePaths = Get.arguments;
+    total.value = imagePaths.length;
 
     List<Uint8List> dataList = [];
     for (String path in imagePaths) {
@@ -98,19 +102,15 @@ class ProcessingImagesController extends GetxController {
       dataList.add(bytes);
     }
 
-    List<(img.Image image, Uint8List data)> results = await ComputeUtil.handle(
-      params: dataList,
-      entryLogic: (tempList) {
-        List<(img.Image image, Uint8List data)> list = [];
-        for (Uint8List bytes in tempList) {
-          img.Image? decodedImage = img.decodeImage(bytes);
-          if (decodedImage == null) {
-            continue;
-          }
-          Uint8List data = Uint8List.fromList(img.encodeJpg(decodedImage));
-          list.add((decodedImage, data));
-        }
-        return list;
+    List<(img.Image, Uint8List)> results = await ComputeUtil.handleList(
+      progressCallback: (value) {
+        progress.value = value;
+      },
+      param: dataList,
+      processingFunction: (bytes) {
+        img.Image decodedImage = img.decodeImage(bytes)!;
+        Uint8List data = Uint8List.fromList(img.encodeJpg(decodedImage));
+        return (decodedImage, data);
       },
     );
 
@@ -123,7 +123,7 @@ class ProcessingImagesController extends GetxController {
         inputFormatBean: InputFormatBean(
           formats: [_disableSpaceFormat],
           keyboardType: TextInputType.text,
-          labelText: '可为任意字符串(Any String)',
+          labelText: '可为任意字符串',
         ),
       );
       items.add(item);
@@ -140,26 +140,26 @@ class ProcessingImagesController extends GetxController {
   }
 
   Future<void> onOpenExamineImage(int index) async {
-    isLoading.value = true;
-
     img.Image image = uiImages.value[index].image;
 
     if (Platform.isAndroid || Platform.isIOS) {
+      isLoading.value = true;
+
       await EasyLoading.show(status: 'Loading...');
 
       Uint8List imageData = await ComputeUtil.handle(
-        params: image,
-        entryLogic: (image) => img.encodeJpg(image),
+        param: image,
+        processingFunction: (image) => img.encodeJpg(image),
       );
 
       EasyLoading.dismiss();
 
-      Get.toNamed(AppRoutes.photoView, arguments: imageData);
+      await Get.toNamed(AppRoutes.photoView, arguments: imageData);
+
+      isLoading.value = false;
     } else {
       openPlatformImageService(image);
     }
-
-    isLoading.value = false;
   }
 
   void onUpdateAllEncryptType(EncryptType value) {
@@ -169,7 +169,7 @@ class ProcessingImagesController extends GetxController {
       inputFormatBean.value = InputFormatBean(
         formats: [_disableSpaceFormat, _floatFormat],
         keyboardType: TextInputType.number,
-        labelText: '范围 0.1 - 0.9 (Range 0.1 - 0.9)',
+        labelText: '范围 0.1 - 0.9',
       );
 
       textController.value.text = _floatRangeKey.toString();
@@ -177,7 +177,7 @@ class ProcessingImagesController extends GetxController {
       inputFormatBean.value = InputFormatBean(
         formats: [_disableSpaceFormat],
         keyboardType: TextInputType.text,
-        labelText: '可为任意字符串(Any String)',
+        labelText: '可为任意字符串',
       );
 
       textController.value.text = _anyStrKey.value;
@@ -390,19 +390,27 @@ class ProcessingImagesController extends GetxController {
       return;
     }
 
-    await EasyLoading.show(status: 'Loading...');
+    await EasyLoading.showProgress(0.0, status: 'Loading...');
 
     List<EncryptImageBean> tempImages = List.from(uiImages.value);
 
-    List<Uint8List> dataList = await ComputeUtil.handle(
-      params: tempImages,
-      entryLogic: (tempList) {
-        return tempList.map((e) => img.encodeJpg(e.image)).toList();
+    List<Uint8List> dataList = await ComputeUtil.handleList(
+      progressCallback: (value) {
+        EasyLoading.showProgress(value, status: '${(value * 100).toInt()}%');
+      },
+      param: tempImages,
+      processingFunction: (item) {
+        return img.encodeJpg(item.image);
       },
     );
 
+    EasyLoading.showProgress(0.0, status: 'Loading...');
+
     List<String> failedList = [];
     for (int i = 0; i < dataList.length; i++) {
+      double value = (i + 1) / dataList.length;
+      EasyLoading.showProgress(value, status: '${(value * 100).toInt()}%');
+
       Uint8List data = dataList[i];
 
       try {
@@ -486,45 +494,76 @@ class ProcessingImagesController extends GetxController {
 
   /// 混淆
   Future<void> onAllEncrypt() async {
-    await EasyLoading.show(status: 'Loading...');
+    var start = DateTime.now();
+    await EasyLoading.showProgress(0.0, status: 'Loading...');
 
     try {
-      List<EncryptImageBean> tempList = List.from(uiImages.value);
+      List<(EncryptType, EncryptImageBean)> tempList = uiImages.value.map((e) {
+        return (encryptType.value, e);
+      }).toList();
 
-      for (int i = 0; i < tempList.length; i++) {
-        EncryptImageBean item = tempList[i];
+      List<EncryptImageBean> results = await ComputeUtil.handleList(
+        progressCallback: (value) {
+          EasyLoading.showProgress(value, status: '${(value * 100).toInt()}%');
+        },
+        param: tempList,
+        processingFunction: (value) {
+          EncryptType encryptType = value.$1;
+          EncryptImageBean item = value.$2;
 
-        img.Image? image;
-        if (encryptType.value == EncryptType.blockPixelConfusion) {
-          image = await _blockPixelConfusionEncode(item);
-        } else if (encryptType.value == EncryptType.rowPixelConfusion) {
-          image = await _rowPixelConfusionEncode(item);
-        } else if (encryptType.value == EncryptType.pixelConfusion) {
-          image = await _pixelConfusionEncode(item);
-        } else if (encryptType.value == EncryptType.picEncryptRowConfusion) {
-          image = await _picEncryptRowConfusionEncode(item);
-        } else if (encryptType.value == EncryptType.picEncryptRowColConfusion) {
-          image = await _picEncryptRowColConfusionEncode(item);
-        } else if (encryptType.value == EncryptType.gilbert2dConfusion) {
-          image = await _gilbert2dCurveConfusionEncode(item);
-        }
+          img.Image originalImage = item.image;
+          String anyStrKey = item.anyStrKey;
+          double floatRangeKey = item.floatRangeKey;
 
-        if (image != null) {
-          Uint8List renderingImage = await ComputeUtil.handle(
-            params: image,
-            entryLogic: (data) {
-              return Uint8List.fromList(img.encodeJpg(data));
-            },
-          );
+          img.Image image;
+          switch (encryptType) {
+            case EncryptType.blockPixelConfusion:
+              image = BlockPixelConfusionUtil.encodeImg(
+                image: originalImage,
+                key: anyStrKey,
+              );
+              break;
+            case EncryptType.rowPixelConfusion:
+              image = RowPixelConfusionUtil.encodeImg(
+                image: originalImage,
+                key: anyStrKey,
+              );
+              break;
+            case EncryptType.pixelConfusion:
+              image = PixelConfusionUtil.encodeImg(
+                image: originalImage,
+                key: anyStrKey,
+              );
+              break;
+            case EncryptType.picEncryptRowConfusion:
+              image = PicEncryptRowConfusionUtil.encodeImg(
+                image: originalImage,
+                key: floatRangeKey,
+              );
+              break;
+            case EncryptType.picEncryptRowColConfusion:
+              image = PicEncryptRowColConfusionUtil.encodeImg(
+                image: originalImage,
+                key: floatRangeKey,
+              );
+              break;
+            case EncryptType.gilbert2dConfusion:
+              image = Gilbert2dConfusionUtil.transformImage(
+                image: originalImage,
+                isEncrypt: true,
+              );
+              break;
+          }
 
-          tempList[i] = tempList[i].copyWith(
-            image: image,
-            renderingData: renderingImage,
-          );
-        }
-      }
+          var renderingData = Uint8List.fromList(img.encodeJpg(image));
+          return item.copyWith(image: image, renderingData: renderingData);
+        },
+      );
 
-      uiImages.value = List.from(tempList);
+      Duration duration = DateTime.now().difference(start);
+      debugPrint('混淆: $duration');
+
+      uiImages.value = List.from(results);
 
       EasyLoading.dismiss();
     } catch (e, s) {
@@ -536,45 +575,76 @@ class ProcessingImagesController extends GetxController {
 
   /// 解混淆
   Future<void> onAllDecrypt() async {
-    await EasyLoading.show(status: 'Loading...');
+    var start = DateTime.now();
+    await EasyLoading.showProgress(0.0, status: 'Loading...');
 
     try {
-      List<EncryptImageBean> tempList = List.from(uiImages.value);
+      List<(EncryptType, EncryptImageBean)> tempList = uiImages.value.map((e) {
+        return (encryptType.value, e);
+      }).toList();
 
-      for (int i = 0; i < tempList.length; i++) {
-        EncryptImageBean item = tempList[i];
+      List<EncryptImageBean> results = await ComputeUtil.handleList(
+        progressCallback: (value) {
+          EasyLoading.showProgress(value, status: '${(value * 100).toInt()}%');
+        },
+        param: tempList,
+        processingFunction: (value) {
+          EncryptType encryptType = value.$1;
+          EncryptImageBean item = value.$2;
 
-        img.Image? image;
-        if (encryptType.value == EncryptType.blockPixelConfusion) {
-          image = await _blockPixelConfusionDecode(item);
-        } else if (encryptType.value == EncryptType.rowPixelConfusion) {
-          image = await _rowPixelConfusionDecode(item);
-        } else if (encryptType.value == EncryptType.pixelConfusion) {
-          image = await _pixelConfusionDecode(item);
-        } else if (encryptType.value == EncryptType.picEncryptRowConfusion) {
-          image = await _picEncryptRowConfusionDecode(item);
-        } else if (encryptType.value == EncryptType.picEncryptRowColConfusion) {
-          image = await _picEncryptRowColConfusionDecode(item);
-        } else if (encryptType.value == EncryptType.gilbert2dConfusion) {
-          image = await _gilbert2dCurveConfusionDecode(item);
-        }
+          img.Image originalImage = item.image;
+          String anyStrKey = item.anyStrKey;
+          double floatRangeKey = item.floatRangeKey;
 
-        if (image != null) {
-          Uint8List renderingImage = await ComputeUtil.handle(
-            params: image,
-            entryLogic: (data) {
-              return Uint8List.fromList(img.encodeJpg(data));
-            },
-          );
+          img.Image image;
+          switch (encryptType) {
+            case EncryptType.blockPixelConfusion:
+              image = BlockPixelConfusionUtil.decodeImg(
+                image: originalImage,
+                key: anyStrKey,
+              );
+              break;
+            case EncryptType.rowPixelConfusion:
+              image = RowPixelConfusionUtil.decodeImg(
+                image: originalImage,
+                key: anyStrKey,
+              );
+              break;
+            case EncryptType.pixelConfusion:
+              image = PixelConfusionUtil.decodeImg(
+                image: originalImage,
+                key: anyStrKey,
+              );
+              break;
+            case EncryptType.picEncryptRowConfusion:
+              image = PicEncryptRowConfusionUtil.decodeImg(
+                image: originalImage,
+                key: floatRangeKey,
+              );
+              break;
+            case EncryptType.picEncryptRowColConfusion:
+              image = PicEncryptRowColConfusionUtil.decodeImg(
+                image: originalImage,
+                key: floatRangeKey,
+              );
+              break;
+            case EncryptType.gilbert2dConfusion:
+              image = Gilbert2dConfusionUtil.transformImage(
+                image: originalImage,
+                isEncrypt: false,
+              );
+              break;
+          }
 
-          tempList[i] = tempList[i].copyWith(
-            image: image,
-            renderingData: renderingImage,
-          );
-        }
-      }
+          var renderingData = Uint8List.fromList(img.encodeJpg(image));
+          return item.copyWith(image: image, renderingData: renderingData);
+        },
+      );
 
-      uiImages.value = List.from(tempList);
+      Duration duration = DateTime.now().difference(start);
+      debugPrint('解混淆: $duration');
+
+      uiImages.value = List.from(results);
 
       EasyLoading.dismiss();
     } catch (e, s) {
@@ -753,209 +823,129 @@ class ProcessingImagesController extends GetxController {
   /// 混淆
   Future<void> onChildEncrypt(int index) async {
     EncryptImageBean item = uiImages.value[index];
+    img.Image originalImage = item.image;
+    String anyStrKey = item.anyStrKey;
+    double floatRangeKey = item.floatRangeKey;
 
-    img.Image? image;
+    img.Image image;
     switch (item.encryptType) {
       case EncryptType.blockPixelConfusion:
-        image = await _blockPixelConfusionEncode(item);
+        image = BlockPixelConfusionUtil.encodeImg(
+          image: originalImage,
+          key: anyStrKey,
+        );
         break;
       case EncryptType.rowPixelConfusion:
-        image = await _rowPixelConfusionEncode(item);
+        image = RowPixelConfusionUtil.encodeImg(
+          image: originalImage,
+          key: anyStrKey,
+        );
         break;
       case EncryptType.pixelConfusion:
-        image = await _pixelConfusionEncode(item);
+        image = PixelConfusionUtil.encodeImg(
+          image: originalImage,
+          key: anyStrKey,
+        );
         break;
       case EncryptType.picEncryptRowConfusion:
-        image = await _picEncryptRowConfusionEncode(item);
+        image = PicEncryptRowConfusionUtil.encodeImg(
+          image: originalImage,
+          key: floatRangeKey,
+        );
         break;
       case EncryptType.picEncryptRowColConfusion:
-        image = await _picEncryptRowColConfusionEncode(item);
+        image = PicEncryptRowColConfusionUtil.encodeImg(
+          image: originalImage,
+          key: floatRangeKey,
+        );
         break;
       case EncryptType.gilbert2dConfusion:
-        image = await _gilbert2dCurveConfusionEncode(item);
+        image = Gilbert2dConfusionUtil.transformImage(
+          image: originalImage,
+          isEncrypt: true,
+        );
+        break;
     }
 
-    if (image != null) {
-      List<EncryptImageBean> tempList = List.from(uiImages.value);
+    List<EncryptImageBean> tempList = List.from(uiImages.value);
 
-      Uint8List renderingImage = await ComputeUtil.handle(
-        params: image,
-        entryLogic: (data) {
-          return Uint8List.fromList(img.encodeJpg(data));
-        },
-      );
+    Uint8List renderingImage = await ComputeUtil.handle(
+      param: image,
+      processingFunction: (data) {
+        return Uint8List.fromList(img.encodeJpg(data));
+      },
+    );
 
-      tempList[index] = tempList[index].copyWith(
-        image: image,
-        renderingData: renderingImage,
-      );
+    tempList[index] = tempList[index].copyWith(
+      image: image,
+      renderingData: renderingImage,
+    );
 
-      uiImages.value = List.from(tempList);
-    }
+    uiImages.value = List.from(tempList);
   }
 
   /// 解混淆
   Future<void> onChildDecrypt(int index) async {
     EncryptImageBean item = uiImages.value[index];
+    img.Image originalImage = item.image;
+    String anyStrKey = item.anyStrKey;
+    double floatRangeKey = item.floatRangeKey;
 
-    img.Image? image;
+    img.Image image;
     switch (item.encryptType) {
       case EncryptType.blockPixelConfusion:
-        image = await _blockPixelConfusionDecode(item);
+        image = BlockPixelConfusionUtil.decodeImg(
+          image: originalImage,
+          key: anyStrKey,
+        );
         break;
       case EncryptType.rowPixelConfusion:
-        image = await _rowPixelConfusionDecode(item);
+        image = RowPixelConfusionUtil.decodeImg(
+          image: originalImage,
+          key: anyStrKey,
+        );
         break;
       case EncryptType.pixelConfusion:
-        image = await _pixelConfusionDecode(item);
+        image = PixelConfusionUtil.decodeImg(
+          image: originalImage,
+          key: anyStrKey,
+        );
         break;
       case EncryptType.picEncryptRowConfusion:
-        image = await _picEncryptRowConfusionDecode(item);
+        image = PicEncryptRowConfusionUtil.decodeImg(
+          image: originalImage,
+          key: floatRangeKey,
+        );
         break;
       case EncryptType.picEncryptRowColConfusion:
-        image = await _picEncryptRowColConfusionDecode(item);
+        image = PicEncryptRowColConfusionUtil.decodeImg(
+          image: originalImage,
+          key: floatRangeKey,
+        );
         break;
       case EncryptType.gilbert2dConfusion:
-        image = await _gilbert2dCurveConfusionDecode(item);
+        image = Gilbert2dConfusionUtil.transformImage(
+          image: originalImage,
+          isEncrypt: false,
+        );
+        break;
     }
 
-    if (image != null) {
-      List<EncryptImageBean> tempList = List.from(uiImages.value);
+    List<EncryptImageBean> tempList = List.from(uiImages.value);
 
-      Uint8List renderingImage = await ComputeUtil.handle(
-        params: image,
-        entryLogic: (data) {
-          return Uint8List.fromList(img.encodeJpg(data));
-        },
-      );
-
-      tempList[index] = tempList[index].copyWith(
-        image: image,
-        renderingData: renderingImage,
-      );
-
-      uiImages.value = List.from(tempList);
-    }
-  }
-
-  /// 方块混淆 加密
-  Future<img.Image?> _blockPixelConfusionEncode(
-    EncryptImageBean item,
-  ) async {
-    return await PicEncryptUtil.encodeBlockPixelConfusion(
-      image: item.image,
-      key: item.anyStrKey,
+    Uint8List renderingImage = await ComputeUtil.handle(
+      param: image,
+      processingFunction: (data) {
+        return Uint8List.fromList(img.encodeJpg(data));
+      },
     );
-  }
 
-  /// 方块混淆 解密
-  Future<img.Image?> _blockPixelConfusionDecode(
-    EncryptImageBean item,
-  ) async {
-    return await PicEncryptUtil.decodeBlockPixelConfusion(
-      image: item.image,
-      key: item.anyStrKey,
+    tempList[index] = tempList[index].copyWith(
+      image: image,
+      renderingData: renderingImage,
     );
-  }
 
-  /// 行像素混淆 加密
-  Future<img.Image?> _rowPixelConfusionEncode(
-    EncryptImageBean item,
-  ) async {
-    return await PicEncryptUtil.encodeRowPixelConfusion(
-      image: item.image,
-      key: item.anyStrKey,
-    );
-  }
-
-  /// 方行像素混淆 解密
-  Future<img.Image?> _rowPixelConfusionDecode(
-    EncryptImageBean item,
-  ) async {
-    return await PicEncryptUtil.decodeRowPixelConfusion(
-      image: item.image,
-      key: item.anyStrKey,
-    );
-  }
-
-  /// 像素混淆 加密
-  Future<img.Image?> _pixelConfusionEncode(
-    EncryptImageBean item,
-  ) async {
-    return await PicEncryptUtil.encodePixelConfusion(
-      image: item.image,
-      key: item.anyStrKey,
-    );
-  }
-
-  /// 像素混淆 解密
-  Future<img.Image?> _pixelConfusionDecode(
-    EncryptImageBean item,
-  ) async {
-    return await PicEncryptUtil.decodePixelConfusion(
-      image: item.image,
-      key: item.anyStrKey,
-    );
-  }
-
-  /// 兼容PicEncrypt：行模式 加密
-  Future<img.Image?> _picEncryptRowConfusionEncode(
-    EncryptImageBean item,
-  ) async {
-    return await PicEncryptUtil.encodePicEncryptRowConfusion(
-      image: item.image,
-      key: item.floatRangeKey,
-    );
-  }
-
-  /// 兼容PicEncrypt：行模式 解密
-  Future<img.Image?> _picEncryptRowConfusionDecode(
-    EncryptImageBean item,
-  ) async {
-    return await PicEncryptUtil.decodePicEncryptRowConfusion(
-      image: item.image,
-      key: item.floatRangeKey,
-    );
-  }
-
-  /// 兼容PicEncrypt：行+列模式 加密
-  Future<img.Image?> _picEncryptRowColConfusionEncode(
-    EncryptImageBean item,
-  ) async {
-    return await PicEncryptUtil.encodePicEncryptRowColConfusion(
-      image: item.image,
-      key: item.floatRangeKey,
-    );
-  }
-
-  /// 兼容PicEncrypt：行+列模式 解密
-  Future<img.Image?> _picEncryptRowColConfusionDecode(
-    EncryptImageBean item,
-  ) async {
-    return await PicEncryptUtil.decodePicEncryptRowColConfusion(
-      image: item.image,
-      key: item.floatRangeKey,
-    );
-  }
-
-  /// 空间填充曲线混淆 加密
-  Future<img.Image?> _gilbert2dCurveConfusionEncode(
-    EncryptImageBean item,
-  ) async {
-    return await PicEncryptUtil.gilbert2dTransformImage(
-      image: item.image,
-      isEncrypt: true,
-    );
-  }
-
-  /// 空间填充曲线混淆 解密
-  Future<img.Image?> _gilbert2dCurveConfusionDecode(
-    EncryptImageBean item,
-  ) async {
-    return await PicEncryptUtil.gilbert2dTransformImage(
-      image: item.image,
-      isEncrypt: false,
-    );
+    uiImages.value = List.from(tempList);
   }
 
   Future<String?> _getSAFPath() async {

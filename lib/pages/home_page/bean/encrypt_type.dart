@@ -1,3 +1,5 @@
+import 'package:get/get.dart';
+
 enum EncryptType {
   /// 方块混淆
   blockPixelConfusion(value: 1, childDirPath: '1_block_pixel'),
@@ -21,17 +23,24 @@ enum EncryptType {
 
   final int value;
   final String childDirPath;
+
+  static EncryptType getByName(String name) {
+    EncryptType? type = EncryptType.values.firstWhereOrNull(
+      (element) => element.name == name,
+    );
+    return type ?? EncryptType.blockPixelConfusion;
+  }
 }
 
 extension ExtEncryptType on EncryptType {
   String get typeName {
     switch (this) {
       case EncryptType.blockPixelConfusion:
-        return '1: 方块混淆 (Block Confusion)';
+        return '1: 方块混淆';
       case EncryptType.rowPixelConfusion:
-        return '2: 行像素混淆 (Row Pixels Confusion)';
+        return '2: 行像素混淆';
       case EncryptType.pixelConfusion:
-        return '3: 像素混淆 (Pixels Confusion)';
+        return '3: 像素混淆';
       case EncryptType.picEncryptRowConfusion:
         return '4: 兼容PicEncrypt: 行模式';
       case EncryptType.picEncryptRowColConfusion:

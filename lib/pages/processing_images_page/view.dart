@@ -87,7 +87,11 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
   Widget mainView() {
     return Obx(() {
       if (controller.isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
+        return Center(
+          child: Obx(() {
+            return CircularProgressIndicator(value: controller.progress.value);
+          }),
+        );
       }
 
       return OrientationBuilder(
@@ -459,21 +463,10 @@ class ImageView extends StatelessWidget {
                 borderRadius: BorderRadius.circular(5),
               ),
             ),
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AutoSizeText(
-                  '混淆',
-                  style: TextStyle(color: Colors.black),
-                  maxLines: 1,
-                ),
-                AutoSizeText(
-                  '(Encrypt)',
-                  style: TextStyle(color: Colors.black),
-                  maxLines: 1,
-                ),
-              ],
+            child: const AutoSizeText(
+              '混淆',
+              style: TextStyle(color: Colors.black),
+              maxLines: 1,
             ),
           ),
           OutlinedButton(
@@ -484,21 +477,10 @@ class ImageView extends StatelessWidget {
                 borderRadius: BorderRadius.circular(5),
               ),
             ),
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AutoSizeText(
-                  '解混淆',
-                  style: TextStyle(color: Colors.black),
-                  maxLines: 1,
-                ),
-                AutoSizeText(
-                  '(Decrypt)',
-                  style: TextStyle(color: Colors.black),
-                  maxLines: 1,
-                ),
-              ],
+            child: const AutoSizeText(
+              '解混淆',
+              style: TextStyle(color: Colors.black),
+              maxLines: 1,
             ),
           ),
           OutlinedButton(
@@ -509,21 +491,10 @@ class ImageView extends StatelessWidget {
                 borderRadius: BorderRadius.circular(5),
               ),
             ),
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AutoSizeText(
-                  '还原',
-                  style: TextStyle(color: Colors.black),
-                  maxLines: 1,
-                ),
-                AutoSizeText(
-                  '(Reset)',
-                  style: TextStyle(color: Colors.black),
-                  maxLines: 1,
-                ),
-              ],
+            child: const AutoSizeText(
+              '还原',
+              style: TextStyle(color: Colors.black),
+              maxLines: 1,
             ),
           ),
           OutlinedButton(
@@ -545,7 +516,7 @@ class ImageView extends StatelessWidget {
     }
 
     return Container(
-      height: 300,
+      height: 350,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.black),

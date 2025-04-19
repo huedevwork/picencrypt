@@ -50,7 +50,7 @@ class HomeController extends GetxController {
     InputFormatBean(
       formats: [_disableSpaceFormat],
       keyboardType: TextInputType.text,
-      labelText: '可为任意字符串(Any String)',
+      labelText: '可为任意字符串',
     ),
   );
 
@@ -138,8 +138,8 @@ class HomeController extends GetxController {
       await EasyLoading.show(status: 'Loading...');
 
       Uint8List imageData = await ComputeUtil.handle(
-        params: image,
-        entryLogic: (image) => img.encodeJpg(image),
+        param: image,
+        processingFunction: (image) => img.encodeJpg(image),
       );
 
       EasyLoading.dismiss();
@@ -368,7 +368,7 @@ class HomeController extends GetxController {
           imagePath,
           name: p.basenameWithoutExtension(imagePath),
           isReturnPathOfIOS: true,
-          skipIfExists: true
+          skipIfExists: true,
         );
         bool isSuccess = mapResult['isSuccess'];
         if (!isSuccess) {
@@ -517,8 +517,8 @@ class HomeController extends GetxController {
         }
 
         img.Image? decodedImage = await ComputeUtil.handle(
-          params: bytes,
-          entryLogic: (data) => img.decodeImage(data),
+          param: bytes,
+          processingFunction: (data) => img.decodeImage(data),
         );
 
         if (decodedImage == null) {
@@ -585,7 +585,7 @@ class HomeController extends GetxController {
       inputFormatBean.value = InputFormatBean(
         formats: [_disableSpaceFormat, _floatFormat],
         keyboardType: TextInputType.number,
-        labelText: '范围 0.1 - 0.9 (Range 0.1 - 0.9)',
+        labelText: '范围 0.1 - 0.9',
       );
 
       textController.value.text = _floatRangeKey.toString();
@@ -593,7 +593,7 @@ class HomeController extends GetxController {
       inputFormatBean.value = InputFormatBean(
         formats: [_disableSpaceFormat],
         keyboardType: TextInputType.text,
-        labelText: '可为任意字符串(Any String)',
+        labelText: '可为任意字符串',
       );
 
       textController.value.text = _anyStrKey.value;
@@ -639,6 +639,7 @@ class HomeController extends GetxController {
         break;
       case EncryptType.gilbert2dConfusion:
         _hilbertCurveConfusionEncode();
+        break;
     }
   }
 
@@ -666,6 +667,7 @@ class HomeController extends GetxController {
         break;
       case EncryptType.gilbert2dConfusion:
         _hilbertCurveConfusionDecode();
+        break;
     }
   }
 
@@ -673,251 +675,238 @@ class HomeController extends GetxController {
   Future<void> _blockPixelConfusionEncode(String key) async {
     await EasyLoading.show(status: 'Loading...');
 
-    img.Image? newImage = await PicEncryptUtil.encodeBlockPixelConfusion(
-      image: uiImage.value!,
-      key: key,
-    );
+    try {
+      img.Image newImage = await PicEncryptUtil.encodeBlockPixelConfusion(
+        image: uiImage.value!,
+        key: key,
+      );
 
-    if (newImage == null) {
+      uiImage.value = newImage;
+
+      EasyLoading.dismiss();
+    } catch (e) {
       EasyLoading.dismiss();
 
       _showSnackBar(content: const Text('加密失败'));
-      return;
     }
-
-    uiImage.value = newImage;
-
-    EasyLoading.dismiss();
   }
 
   /// 方块混淆 解密
   Future<void> _blockPixelConfusionDecode(String key) async {
     await EasyLoading.show(status: 'Loading...');
 
-    img.Image? newImage = await PicEncryptUtil.decodeBlockPixelConfusion(
-      image: uiImage.value!,
-      key: key,
-    );
+    try {
+      img.Image newImage = await PicEncryptUtil.decodeBlockPixelConfusion(
+        image: uiImage.value!,
+        key: key,
+      );
 
-    if (newImage == null) {
+      uiImage.value = newImage;
+
+      EasyLoading.dismiss();
+    } catch (e) {
       EasyLoading.dismiss();
 
       _showSnackBar(content: const Text('解密失败'));
-      return;
     }
-
-    uiImage.value = newImage;
-
-    EasyLoading.dismiss();
   }
 
   /// 行像素混淆 加密
   Future<void> _rowPixelConfusionEncode(String key) async {
     await EasyLoading.show(status: 'Loading...');
 
-    img.Image? newImage = await PicEncryptUtil.encodeRowPixelConfusion(
-      image: uiImage.value!,
-      key: key,
-    );
+    try {
+      img.Image newImage = await PicEncryptUtil.encodeRowPixelConfusion(
+        image: uiImage.value!,
+        key: key,
+      );
 
-    if (newImage == null) {
+      uiImage.value = newImage;
+
+      EasyLoading.dismiss();
+    } catch (e) {
       EasyLoading.dismiss();
 
       _showSnackBar(content: const Text('加密失败'));
-      return;
     }
-
-    uiImage.value = newImage;
-
-    EasyLoading.dismiss();
   }
 
   /// 方行像素混淆 解密
   Future<void> _rowPixelConfusionDecode(String key) async {
     await EasyLoading.show(status: 'Loading...');
 
-    img.Image? newImage = await PicEncryptUtil.decodeRowPixelConfusion(
-      image: uiImage.value!,
-      key: key,
-    );
+    try {
+      img.Image newImage = await PicEncryptUtil.decodeRowPixelConfusion(
+        image: uiImage.value!,
+        key: key,
+      );
 
-    if (newImage == null) {
+      uiImage.value = newImage;
+
+      EasyLoading.dismiss();
+    } catch (e) {
       EasyLoading.dismiss();
 
       _showSnackBar(content: const Text('解密失败'));
-      return;
     }
-
-    uiImage.value = newImage;
-
-    EasyLoading.dismiss();
   }
 
   /// 像素混淆 加密
   Future<void> _pixelConfusionEncode(String key) async {
     await EasyLoading.show(status: 'Loading...');
 
-    img.Image? newImage = await PicEncryptUtil.encodePixelConfusion(
-      image: uiImage.value!,
-      key: key,
-    );
+    try {
+      img.Image newImage = await PicEncryptUtil.encodePixelConfusion(
+        image: uiImage.value!,
+        key: key,
+      );
 
-    if (newImage == null) {
+      uiImage.value = newImage;
+
+      EasyLoading.dismiss();
+    } catch (e) {
       EasyLoading.dismiss();
 
       _showSnackBar(content: const Text('加密失败'));
-      return;
     }
-
-    uiImage.value = newImage;
-
-    EasyLoading.dismiss();
   }
 
   /// 像素混淆 解密
   Future<void> _pixelConfusionDecode(String key) async {
     await EasyLoading.show(status: 'Loading...');
 
-    img.Image? newImage = await PicEncryptUtil.decodePixelConfusion(
-      image: uiImage.value!,
-      key: key,
-    );
+    try {
+      img.Image newImage = await PicEncryptUtil.decodePixelConfusion(
+        image: uiImage.value!,
+        key: key,
+      );
 
-    if (newImage == null) {
+      uiImage.value = newImage;
+
+      EasyLoading.dismiss();
+    } catch (e) {
       EasyLoading.dismiss();
 
       _showSnackBar(content: const Text('解密失败'));
-      return;
     }
-
-    uiImage.value = newImage;
-
-    EasyLoading.dismiss();
   }
 
   /// 兼容PicEncrypt：行模式 加密
   Future<void> _picEncryptRowConfusionEncode(double key) async {
     await EasyLoading.show(status: 'Loading...');
 
-    img.Image? newImage = await PicEncryptUtil.encodePicEncryptRowConfusion(
-      image: uiImage.value!,
-      key: key,
-    );
+    try {
+      img.Image newImage = await PicEncryptUtil.encodePicEncryptRowConfusion(
+        image: uiImage.value!,
+        key: key,
+      );
 
-    if (newImage == null) {
+      uiImage.value = newImage;
+
+      EasyLoading.dismiss();
+    } catch (e) {
       EasyLoading.dismiss();
 
       _showSnackBar(content: const Text('加密失败'));
-      return;
     }
-
-    uiImage.value = newImage;
-
-    EasyLoading.dismiss();
   }
 
   /// 兼容PicEncrypt：行模式 解密
   Future<void> _picEncryptRowConfusionDecode(double key) async {
     await EasyLoading.show(status: 'Loading...');
 
-    img.Image? newImage = await PicEncryptUtil.decodePicEncryptRowConfusion(
-      image: uiImage.value!,
-      key: key,
-    );
+    try {
+      img.Image newImage = await PicEncryptUtil.decodePicEncryptRowConfusion(
+        image: uiImage.value!,
+        key: key,
+      );
 
-    if (newImage == null) {
+      uiImage.value = newImage;
+
+      EasyLoading.dismiss();
+    } catch (e) {
       EasyLoading.dismiss();
 
       _showSnackBar(content: const Text('解密失败'));
-      return;
     }
-
-    uiImage.value = newImage;
-
-    EasyLoading.dismiss();
   }
 
   /// 兼容PicEncrypt：行+列模式 加密
   Future<void> _picEncryptRowColConfusionEncode(double key) async {
     await EasyLoading.show(status: 'Loading...');
 
-    img.Image? newImage = await PicEncryptUtil.encodePicEncryptRowColConfusion(
-      image: uiImage.value!,
-      key: key,
-    );
+    try {
+      img.Image newImage = await PicEncryptUtil.encodePicEncryptRowColConfusion(
+        image: uiImage.value!,
+        key: key,
+      );
 
-    if (newImage == null) {
+      uiImage.value = newImage;
+
+      EasyLoading.dismiss();
+    } catch (e) {
       EasyLoading.dismiss();
 
       _showSnackBar(content: const Text('加密失败'));
-      return;
     }
-
-    uiImage.value = newImage;
-
-    EasyLoading.dismiss();
   }
 
   /// 兼容PicEncrypt：行+列模式 解密
   Future<void> _picEncryptRowColConfusionDecode(double key) async {
     await EasyLoading.show(status: 'Loading...');
 
-    img.Image? newImage = await PicEncryptUtil.decodePicEncryptRowColConfusion(
-      image: uiImage.value!,
-      key: key,
-    );
+    try {
+      img.Image newImage = await PicEncryptUtil.decodePicEncryptRowColConfusion(
+        image: uiImage.value!,
+        key: key,
+      );
 
-    if (newImage == null) {
+      uiImage.value = newImage;
+
+      EasyLoading.dismiss();
+    } catch (e) {
       EasyLoading.dismiss();
 
       _showSnackBar(content: const Text('解密失败'));
-      return;
     }
-
-    uiImage.value = newImage;
-
-    EasyLoading.dismiss();
   }
 
   /// 空间填充曲线混淆 加密
   Future<void> _hilbertCurveConfusionEncode() async {
     await EasyLoading.show(status: 'Loading...');
 
-    img.Image? newImage = await PicEncryptUtil.gilbert2dTransformImage(
-      image: uiImage.value!,
-      isEncrypt: true,
-    );
+    try {
+      img.Image newImage = await PicEncryptUtil.gilbert2dTransformImage(
+        image: uiImage.value!,
+        isEncrypt: true,
+      );
+      uiImage.value = newImage;
 
-    if (newImage == null) {
+      EasyLoading.dismiss();
+    } catch (e) {
       EasyLoading.dismiss();
 
       _showSnackBar(content: const Text('加密失败'));
-      return;
     }
-
-    uiImage.value = newImage;
-
-    EasyLoading.dismiss();
   }
 
   /// 空间填充曲线混淆 解密
   Future<void> _hilbertCurveConfusionDecode() async {
     await EasyLoading.show(status: 'Loading...');
 
-    img.Image? newImage = await PicEncryptUtil.gilbert2dTransformImage(
-      image: uiImage.value!,
-      isEncrypt: false,
-    );
+    try {
+      img.Image newImage = await PicEncryptUtil.gilbert2dTransformImage(
+        image: uiImage.value!,
+        isEncrypt: false,
+      );
 
-    if (newImage == null) {
+      uiImage.value = newImage;
+
+      EasyLoading.dismiss();
+    } catch (e) {
       EasyLoading.dismiss();
 
       _showSnackBar(content: const Text('解密失败'));
-      return;
     }
-
-    uiImage.value = newImage;
-
-    EasyLoading.dismiss();
   }
 }

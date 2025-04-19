@@ -40,7 +40,7 @@ class _DialogTextFieldState extends State<DialogTextField> {
       inputFormatBean = InputFormatBean(
         formats: [_disableSpaceFormat, _floatFormat],
         keyboardType: TextInputType.number,
-        labelText: '范围 0.1 - 0.9 (Range 0.1 - 0.9)',
+        labelText: '范围 0.1 - 0.9',
       );
 
       textController.text = widget.item.floatRangeKey.toString();
@@ -48,7 +48,7 @@ class _DialogTextFieldState extends State<DialogTextField> {
       inputFormatBean = InputFormatBean(
         formats: [_disableSpaceFormat],
         keyboardType: TextInputType.text,
-        labelText: '可为任意字符串(Any String)',
+        labelText: '可为任意字符串',
       );
 
       textController.text = widget.item.anyStrKey;

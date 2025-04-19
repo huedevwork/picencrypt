@@ -17,8 +17,8 @@ Future<void> openPlatformImageService(img.Image image) async {
 
   try {
     final imageData = await ComputeUtil.handle(
-      params: image,
-      entryLogic: (path) => img.encodeJpg(image),
+      param: image,
+      processingFunction: (path) => img.encodeJpg(image),
     );
 
     String timeName = CreateFileNameUtil.timeName();
