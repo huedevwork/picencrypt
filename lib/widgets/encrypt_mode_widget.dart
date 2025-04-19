@@ -16,7 +16,7 @@ class EncryptModeWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Text('模式'),
+        const Text('模式: '),
         Expanded(
           child: Container(
             decoration: BoxDecoration(

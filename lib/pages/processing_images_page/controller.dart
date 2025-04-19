@@ -570,8 +570,9 @@ class ProcessingImagesController extends GetxController {
         },
       );
 
-      Duration duration = DateTime.now().difference(start);
-      debugPrint('混淆: $duration');
+      String text = '${encryptType.value.typeName}\n混淆耗时: ${DateTime.now().difference(start)}';
+      debugPrint(text);
+      _showSnackBar(content: Text(text));
 
       uiImages.value = List.from(results);
 
@@ -651,8 +652,9 @@ class ProcessingImagesController extends GetxController {
         },
       );
 
-      Duration duration = DateTime.now().difference(start);
-      debugPrint('解混淆: $duration');
+      String text = '${encryptType.value.typeName}\n解混淆耗时: ${DateTime.now().difference(start)}';
+      debugPrint(text);
+      _showSnackBar(content: Text(text));
 
       uiImages.value = List.from(results);
 
