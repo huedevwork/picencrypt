@@ -64,7 +64,7 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
                     FloatingActionButton(
                       heroTag: 'onOpenImageViewer',
                       onPressed: controller.onOpenImageViewer,
-                      tooltip: '查看所有图片',
+                      tooltip: '查看当前图片列表',
                       backgroundColor: Colors.white,
                       enableFeedback: true,
                       child: const Column(
@@ -73,7 +73,7 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
                         children: [
                           Icon(Icons.remove_red_eye_outlined),
                           AutoSizeText(
-                            '查看所有图片',
+                            '查看列表',
                             style: TextStyle(color: Colors.black, fontSize: 12),
                             maxLines: 1,
                           ),

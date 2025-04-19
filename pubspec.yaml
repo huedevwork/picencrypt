@@ -5,7 +5,7 @@ repository: https://github.com/huedevwork/picencrypt
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 # 1.0.0 versionName. 1 versionCode
-version: 1.0.4+2
+version: 1.0.5+3
 
 environment:
   sdk: ^3.5.4
