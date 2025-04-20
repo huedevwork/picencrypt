@@ -2,8 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:flutter/material.dart';
-
 class _SingleParamIsolateWrapper<T, R> {
   final R singleParam;
   final T Function(R) processingFunction;
@@ -31,11 +29,24 @@ class _ListParamIsolateWrapper<T, R> {
 }
 
 class ComputeUtil {
+  static List<Isolate> _activeIsolates = [];
+
   static void _singleParamEntryPoint<T, R>(
     _SingleParamIsolateWrapper<T, R> wrapper,
   ) {
-    final result = wrapper.processingFunction(wrapper.singleParam);
-    wrapper.resultSendPort.send(result);
+    try {
+      final result = wrapper.processingFunction(wrapper.singleParam);
+      wrapper.resultSendPort.send({
+        'type': 'success',
+        'data': result,
+      });
+    } catch (e, s) {
+      wrapper.resultSendPort.send({
+        'type': 'error',
+        'error': e.toString(),
+        'stackTrace': s.toString(),
+      });
+    }
   }
 
   static Future<T> handle<T, R>({
@@ -50,9 +61,23 @@ class ComputeUtil {
       resultSendPort: receivePort.sendPort,
     );
 
-    await Isolate.spawn(_singleParamEntryPoint<T, R>, isolateParam);
-    final result = await receivePort.first;
-    return result as T;
+    final isolate = await Isolate.spawn(
+      _singleParamEntryPoint<T, R>,
+      isolateParam,
+    );
+    _activeIsolates.add(isolate);
+
+    final resultMap = await receivePort.first as Map<String, dynamic>;
+
+    _activeIsolates.remove(isolate);
+
+    isolate.kill(priority: Isolate.immediate);
+
+    if (resultMap['type'] == 'error') {
+      throw Exception('${resultMap['error']}\n${resultMap['stackTrace']}');
+    }
+
+    return resultMap['data'] as T;
   }
 
   static void _listParamEntryPoint<T, R>(
@@ -60,13 +85,24 @@ class ComputeUtil {
   ) {
     List<T> results = [];
     int total = wrapper.listParam.length;
-    for (int i = 0; i < total; i++) {
-      var item = wrapper.listParam[i];
-      results.add(wrapper.processingFunction(item));
-      double progress = (i + 1) / total;
-      wrapper.progressSendPort.send(progress);
+    try {
+      for (int i = 0; i < total; i++) {
+        var item = wrapper.listParam[i];
+        results.add(wrapper.processingFunction(item));
+        double progress = (i + 1) / total;
+        wrapper.progressSendPort.send(progress);
+      }
+      wrapper.resultSendPort.send({
+        'type': 'success',
+        'data': results,
+      });
+    } catch (e, s) {
+      wrapper.resultSendPort.send({
+        'type': 'error',
+        'error': e.toString(),
+        'stackTrace': s.toString(),
+      });
     }
-    wrapper.resultSendPort.send(results);
   }
 
   static Future<List<T>> handleList<T, R>({
@@ -86,11 +122,11 @@ class ComputeUtil {
       int end = (i + chunkSize).clamp(0, param.length);
       chunks.add(param.sublist(i, end));
     }
-    debugPrint('chunks --> ${chunks.map((e) => e.length).toList()}');
+    // debugPrint('chunks --> ${chunks.map((e) => e.length).toList()}');
 
     List<ReceivePort> receivePorts = [];
     List<ReceivePort> progressReceivePorts = [];
-    List<Isolate> isolates = [];
+    _activeIsolates = [];
     List<int> totalItemsPerChunk = chunks.map((chunk) => chunk.length).toList();
     List<int> completedItemsPerChunk = List.filled(chunks.length, 0);
 
@@ -104,7 +140,8 @@ class ComputeUtil {
       progressReceivePort.listen((progress) {
         if (progress is double) {
           int chunkIndex = progressReceivePorts.indexOf(progressReceivePort);
-          completedItemsPerChunk[chunkIndex] = (progress * totalItemsPerChunk[chunkIndex]).round();
+          int count = (progress * totalItemsPerChunk[chunkIndex]).round();
+          completedItemsPerChunk[chunkIndex] = count;
           int totalCompleted = completedItemsPerChunk.reduce((a, b) => a + b);
           int totalItems = totalItemsPerChunk.reduce((a, b) => a + b);
           double overallProgress = totalCompleted / totalItems;
@@ -123,20 +160,19 @@ class ComputeUtil {
         _listParamEntryPoint<T, R>,
         isolateParam,
       );
-      isolates.add(isolate);
+      _activeIsolates.add(isolate);
     }
 
     List<List<T>> chunkResults = [];
     for (var receivePort in receivePorts) {
-      try {
-        final result = await receivePort.first as List<T>;
-        chunkResults.add(result);
-      } catch (e) {
-        debugPrint('Error receiving result from isolate: $e');
+      final resultMap = await receivePort.first as Map<String, dynamic>;
+      if (resultMap['type'] == 'error') {
+        throw Exception('${resultMap['error']}\n${resultMap['stackTrace']}');
       }
+      chunkResults.add(resultMap['data'] as List<T>);
     }
 
-    for (var isolate in isolates) {
+    for (var isolate in _activeIsolates) {
       isolate.kill(priority: Isolate.immediate);
     }
 
@@ -153,6 +189,14 @@ class ComputeUtil {
       finalResults.addAll(chunkResult);
     }
 
+    _activeIsolates.clear();
     return finalResults;
+  }
+
+  static void killAllIsolates() {
+    for (var isolate in _activeIsolates) {
+      isolate.kill(priority: Isolate.immediate);
+    }
+    _activeIsolates.clear();
   }
 }

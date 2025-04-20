@@ -151,8 +151,12 @@ class LoggerUtils {
     }
 
     String logPath = p.join(storagePrefix, 'Download', _logPathName);
-
-    return Directory(logPath);
+    Directory logDir = Directory(logPath);
+    bool exists = await logDir.exists();
+    if (!exists) {
+      await logDir.create(recursive: true);
+    }
+    return logDir;
   }
 
   Future<String?> exportLogs() async {

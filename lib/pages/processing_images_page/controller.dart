@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -88,12 +89,13 @@ class ProcessingImagesController extends GetxController {
 
   @override
   void onClose() {
-    EasyLoading.dismiss();
+    ComputeUtil.killAllIsolates();
     _images.close();
     uiImages.close();
     focusNode.close();
     textController.close();
     scrollController.close();
+    EasyLoading.dismiss();
   }
 
   void _showSnackBar({String title = '', String message = ''}) {
@@ -109,46 +111,61 @@ class ProcessingImagesController extends GetxController {
     List<String> imagePaths = Get.arguments;
     total.value = imagePaths.length;
 
-    List<Uint8List> dataList = [];
-    for (String path in imagePaths) {
-      Uint8List bytes = await File(path).readAsBytes();
-      dataList.add(bytes);
-    }
+    try {
+      List<Uint8List> dataList = [];
+      for (String path in imagePaths) {
+        Uint8List bytes = await File(path).readAsBytes();
+        dataList.add(bytes);
+      }
 
-    List<(img.Image, Uint8List)> results = await ComputeUtil.handleList(
-      progressCallback: (value) {
-        progress.value = value;
-      },
-      param: dataList,
-      processingFunction: (bytes) {
-        img.Image decodedImage = img.decodeImage(bytes)!;
-        Uint8List data = Uint8List.fromList(img.encodeJpg(decodedImage));
-        return (decodedImage, data);
-      },
-    );
-
-    List<EncryptImageBean> items = [];
-    for (int i = 0; i < results.length; i++) {
-      img.Image image = results[i].$1;
-      EncryptImageBean item = EncryptImageBean(
-        image: image,
-        renderingData: results[i].$2,
-        inputFormatBean: InputFormatBean(
-          formats: [_disableSpaceFormat],
-          keyboardType: TextInputType.text,
-          labelText: '可为任意字符串',
-        ),
+      List<(img.Image, Uint8List)> results = await ComputeUtil.handleList(
+        progressCallback: (value) {
+          progress.value = value;
+        },
+        param: dataList,
+        processingFunction: (bytes) {
+          try {
+            img.Image decodedImage = img.decodeImage(bytes)!;
+            return (decodedImage, img.encodeJpg(decodedImage));
+          } catch (e) {
+            rethrow;
+          }
+        },
       );
-      items.add(item);
-    }
 
-    uiImages.value = List.from(items);
-    _images.value = List.from(items);
+      List<EncryptImageBean> items = [];
+      for (int i = 0; i < results.length; i++) {
+        img.Image image = results[i].$1;
+        EncryptImageBean item = EncryptImageBean(
+          image: image,
+          renderingData: results[i].$2,
+          inputFormatBean: InputFormatBean(
+            formats: [_disableSpaceFormat],
+            keyboardType: TextInputType.text,
+            labelText: '可为任意字符串',
+          ),
+        );
+        items.add(item);
+      }
 
-    isLoading.value = false;
+      uiImages.value = List.from(items);
+      _images.value = List.from(items);
 
-    if (Platform.isAndroid || Platform.isIOS) {
-      CacheManagerUtil.clearCache();
+      isLoading.value = false;
+
+      if (Platform.isAndroid || Platform.isIOS) {
+        CacheManagerUtil.clearCache();
+      }
+    } catch (e, s) {
+      _showSnackBar(title: '初始化失败, 内存不足', message: '请尝试减少加载的数量');
+
+      _logger.e(
+        '初始化失败, 内存不足',
+        error: e,
+        stackTrace: s,
+      );
+
+      Get.back();
     }
   }
 
@@ -411,87 +428,105 @@ class ProcessingImagesController extends GetxController {
 
     await EasyLoading.show(status: 'Loading...');
 
-    List<EncryptImageBean> tempImages = List.from(uiImages.value);
+    try {
+      List<EncryptImageBean> tempImages = List.from(uiImages.value);
 
-    List<Uint8List> dataList = await ComputeUtil.handleList(
-      progressCallback: (value) {
+      List<Uint8List> dataList = await ComputeUtil.handleList(
+        progressCallback: (value) {
+          EasyLoading.showProgress(value, status: '${(value * 100).toInt()}%');
+        },
+        param: tempImages,
+        processingFunction: (item) {
+          try {
+            return img.encodeJpg(item.image);
+          } catch (e) {
+            rethrow;
+          }
+        },
+      );
+
+      EasyLoading.showProgress(0.0, status: 'Loading...');
+
+      List<String> failedList = [];
+      for (int i = 0; i < dataList.length; i++) {
+        double value = (i + 1) / dataList.length;
         EasyLoading.showProgress(value, status: '${(value * 100).toInt()}%');
-      },
-      param: tempImages,
-      processingFunction: (item) {
-        return img.encodeJpg(item.image);
-      },
-    );
 
-    EasyLoading.showProgress(0.0, status: 'Loading...');
+        Uint8List data = dataList[i];
 
-    List<String> failedList = [];
-    for (int i = 0; i < dataList.length; i++) {
-      double value = (i + 1) / dataList.length;
-      EasyLoading.showProgress(value, status: '${(value * 100).toInt()}%');
+        try {
+          String dir = p.dirname(imagePath);
+          String baseName = p.basenameWithoutExtension(imagePath);
 
-      Uint8List data = dataList[i];
+          String newBaseName = '${baseName}_$i';
+          String newImagePath = p.join(dir, '$newBaseName.jpg');
 
-      try {
-        String dir = p.dirname(imagePath);
-        String baseName = p.basenameWithoutExtension(imagePath);
-
-        String newBaseName = '${baseName}_$i';
-        String newImagePath = p.join(dir, '$newBaseName.jpg');
-
-        await File(newImagePath).writeAsBytes(data);
-      } catch (e) {
-        failedList.add(imagePath);
-        continue;
+          await File(newImagePath).writeAsBytes(data);
+        } catch (e) {
+          failedList.add(imagePath);
+          continue;
+        }
       }
-    }
 
-    EasyLoading.dismiss();
+      EasyLoading.dismiss();
 
-    _onCustomSnackBar(content: const Text('保存成功'));
+      _onCustomSnackBar(content: const Text('保存成功'));
 
-    if (failedList.isEmpty) {
-      return;
-    }
+      if (failedList.isEmpty) {
+        return;
+      }
 
-    Widget content = Column(
-      children: [
-        const Text('下列文件保存失败:'),
-        Flexible(
-          child: ListView.builder(
-            itemCount: failedList.length,
-            itemBuilder: (BuildContext context, int index) {
-              String path = failedList[index];
-              return Text(path);
-            },
+      Widget content = Column(
+        children: [
+          const Text('下列文件保存失败:'),
+          Flexible(
+            child: ListView.builder(
+              itemCount: failedList.length,
+              itemBuilder: (BuildContext context, int index) {
+                String path = failedList[index];
+                return Text(path);
+              },
+            ),
           ),
+        ],
+      );
+      final List<Widget> actions = [
+        TextButton(
+          onPressed: () => Navigator.of(Get.context!).pop(true),
+          child: const Text('确定'),
         ),
-      ],
-    );
-    final List<Widget> actions = [
-      TextButton(
-        onPressed: () => Navigator.of(Get.context!).pop(true),
-        child: const Text('确定'),
-      ),
-    ];
+      ];
 
-    Widget dialog = AlertDialog(
-      title: const Text('保存'),
-      content: content,
-      actions: actions,
-    );
-    if (Platform.isIOS) {
-      dialog = CupertinoAlertDialog(
-        title: const Text('保存路径'),
+      Widget dialog = AlertDialog(
+        title: const Text('保存'),
         content: content,
         actions: actions,
       );
-    }
+      if (Platform.isIOS) {
+        dialog = CupertinoAlertDialog(
+          title: const Text('保存路径'),
+          content: content,
+          actions: actions,
+        );
+      }
 
-    showDialog<bool>(
-      context: Get.context!,
-      builder: (_) => dialog,
-    );
+      showDialog<bool>(
+        context: Get.context!,
+        builder: (_) => dialog,
+      );
+    } catch (e, s) {
+      ComputeUtil.killAllIsolates();
+
+      EasyLoading.dismiss();
+
+      _showSnackBar(title: '保存失败, 内存不足', message: '请尝试减少加载的数量');
+
+      _logger.e(
+        '${encryptType.value.typeName}: 保存失败, 内存不足',
+        error: e,
+        stackTrace: s,
+      );
+    }
   }
 
   /// 还原
@@ -527,55 +562,61 @@ class ProcessingImagesController extends GetxController {
         },
         param: tempList,
         processingFunction: (value) {
-          EncryptType encryptType = value.$1;
-          EncryptImageBean item = value.$2;
+          try {
+            EncryptType encryptType = value.$1;
+            EncryptImageBean item = value.$2;
 
-          img.Image originalImage = item.image;
-          String anyStrKey = item.anyStrKey;
-          double floatRangeKey = item.floatRangeKey;
+            img.Image originalImage = item.image;
+            String anyStrKey = item.anyStrKey;
+            double floatRangeKey = item.floatRangeKey;
 
-          img.Image image;
-          switch (encryptType) {
-            case EncryptType.blockPixelConfusion:
-              image = BlockPixelConfusionUtil.encodeImg(
-                image: originalImage,
-                key: anyStrKey,
-              );
-              break;
-            case EncryptType.rowPixelConfusion:
-              image = RowPixelConfusionUtil.encodeImg(
-                image: originalImage,
-                key: anyStrKey,
-              );
-              break;
-            case EncryptType.pixelConfusion:
-              image = PixelConfusionUtil.encodeImg(
-                image: originalImage,
-                key: anyStrKey,
-              );
-              break;
-            case EncryptType.picEncryptRowConfusion:
-              image = PicEncryptRowConfusionUtil.encodeImg(
-                image: originalImage,
-                key: floatRangeKey,
-              );
-              break;
-            case EncryptType.picEncryptRowColConfusion:
-              image = PicEncryptRowColConfusionUtil.encodeImg(
-                image: originalImage,
-                key: floatRangeKey,
-              );
-              break;
-            case EncryptType.gilbert2dConfusion:
-              image = Gilbert2dConfusionUtil.transformImage(
-                image: originalImage,
-                isEncrypt: true,
-              );
-              break;
+            img.Image image;
+            switch (encryptType) {
+              case EncryptType.blockPixelConfusion:
+                image = BlockPixelConfusionUtil.encodeImg(
+                  image: originalImage,
+                  key: anyStrKey,
+                );
+                break;
+              case EncryptType.rowPixelConfusion:
+                image = RowPixelConfusionUtil.encodeImg(
+                  image: originalImage,
+                  key: anyStrKey,
+                );
+                break;
+              case EncryptType.pixelConfusion:
+                image = PixelConfusionUtil.encodeImg(
+                  image: originalImage,
+                  key: anyStrKey,
+                );
+                break;
+              case EncryptType.picEncryptRowConfusion:
+                image = PicEncryptRowConfusionUtil.encodeImg(
+                  image: originalImage,
+                  key: floatRangeKey,
+                );
+                break;
+              case EncryptType.picEncryptRowColConfusion:
+                image = PicEncryptRowColConfusionUtil.encodeImg(
+                  image: originalImage,
+                  key: floatRangeKey,
+                );
+                break;
+              case EncryptType.gilbert2dConfusion:
+                image = Gilbert2dConfusionUtil.transformImage(
+                  image: originalImage,
+                  isEncrypt: true,
+                );
+                break;
+            }
+
+            return item.copyWith(
+              image: image,
+              renderingData: img.encodeJpg(image),
+            );
+          } catch (e) {
+            rethrow;
           }
-
-          var renderingData = Uint8List.fromList(img.encodeJpg(image));
-          return item.copyWith(image: image, renderingData: renderingData);
         },
       );
 
@@ -587,9 +628,17 @@ class ProcessingImagesController extends GetxController {
 
       EasyLoading.dismiss();
     } catch (e, s) {
+      ComputeUtil.killAllIsolates();
+
       EasyLoading.dismiss();
 
-      _logger.e('混淆失败', error: e, stackTrace: s);
+      _showSnackBar(title: '内存不足', message: '请尝试减少加载的数量');
+
+      _logger.e(
+        '${encryptType.value.typeName}: 混淆失败, 内存不足',
+        error: e,
+        stackTrace: s,
+      );
     }
   }
 
@@ -609,55 +658,61 @@ class ProcessingImagesController extends GetxController {
         },
         param: tempList,
         processingFunction: (value) {
-          EncryptType encryptType = value.$1;
-          EncryptImageBean item = value.$2;
+          try {
+            EncryptType encryptType = value.$1;
+            EncryptImageBean item = value.$2;
 
-          img.Image originalImage = item.image;
-          String anyStrKey = item.anyStrKey;
-          double floatRangeKey = item.floatRangeKey;
+            img.Image originalImage = item.image;
+            String anyStrKey = item.anyStrKey;
+            double floatRangeKey = item.floatRangeKey;
 
-          img.Image image;
-          switch (encryptType) {
-            case EncryptType.blockPixelConfusion:
-              image = BlockPixelConfusionUtil.decodeImg(
-                image: originalImage,
-                key: anyStrKey,
-              );
-              break;
-            case EncryptType.rowPixelConfusion:
-              image = RowPixelConfusionUtil.decodeImg(
-                image: originalImage,
-                key: anyStrKey,
-              );
-              break;
-            case EncryptType.pixelConfusion:
-              image = PixelConfusionUtil.decodeImg(
-                image: originalImage,
-                key: anyStrKey,
-              );
-              break;
-            case EncryptType.picEncryptRowConfusion:
-              image = PicEncryptRowConfusionUtil.decodeImg(
-                image: originalImage,
-                key: floatRangeKey,
-              );
-              break;
-            case EncryptType.picEncryptRowColConfusion:
-              image = PicEncryptRowColConfusionUtil.decodeImg(
-                image: originalImage,
-                key: floatRangeKey,
-              );
-              break;
-            case EncryptType.gilbert2dConfusion:
-              image = Gilbert2dConfusionUtil.transformImage(
-                image: originalImage,
-                isEncrypt: false,
-              );
-              break;
+            img.Image image;
+            switch (encryptType) {
+              case EncryptType.blockPixelConfusion:
+                image = BlockPixelConfusionUtil.decodeImg(
+                  image: originalImage,
+                  key: anyStrKey,
+                );
+                break;
+              case EncryptType.rowPixelConfusion:
+                image = RowPixelConfusionUtil.decodeImg(
+                  image: originalImage,
+                  key: anyStrKey,
+                );
+                break;
+              case EncryptType.pixelConfusion:
+                image = PixelConfusionUtil.decodeImg(
+                  image: originalImage,
+                  key: anyStrKey,
+                );
+                break;
+              case EncryptType.picEncryptRowConfusion:
+                image = PicEncryptRowConfusionUtil.decodeImg(
+                  image: originalImage,
+                  key: floatRangeKey,
+                );
+                break;
+              case EncryptType.picEncryptRowColConfusion:
+                image = PicEncryptRowColConfusionUtil.decodeImg(
+                  image: originalImage,
+                  key: floatRangeKey,
+                );
+                break;
+              case EncryptType.gilbert2dConfusion:
+                image = Gilbert2dConfusionUtil.transformImage(
+                  image: originalImage,
+                  isEncrypt: false,
+                );
+                break;
+            }
+
+            return item.copyWith(
+              image: image,
+              renderingData: img.encodeJpg(image),
+            );
+          } catch (e) {
+            rethrow;
           }
-
-          var renderingData = Uint8List.fromList(img.encodeJpg(image));
-          return item.copyWith(image: image, renderingData: renderingData);
         },
       );
 
@@ -669,9 +724,17 @@ class ProcessingImagesController extends GetxController {
 
       EasyLoading.dismiss();
     } catch (e, s) {
+      ComputeUtil.killAllIsolates();
+
       EasyLoading.dismiss();
 
-      _logger.e('解码失败', error: e, stackTrace: s);
+      _showSnackBar(title: '内存不足', message: '请尝试减少加载的数量');
+
+      _logger.e(
+        '${encryptType.value.typeName}: 解混淆失败, 内存不足',
+        error: e,
+        stackTrace: s,
+      );
     }
   }
 
@@ -895,9 +958,7 @@ class ProcessingImagesController extends GetxController {
 
       Uint8List renderingImage = await ComputeUtil.handle(
         param: image,
-        processingFunction: (data) {
-          return Uint8List.fromList(img.encodeJpg(data));
-        },
+        processingFunction: (value) => img.encodeJpg(value),
       );
 
       tempList[index] = tempList[index].copyWith(
@@ -912,6 +973,8 @@ class ProcessingImagesController extends GetxController {
       EasyLoading.dismiss();
 
       _showSnackBar(title: '失败', message: '混淆失败');
+
+      _logger.w(e);
     }
   }
 
@@ -969,9 +1032,7 @@ class ProcessingImagesController extends GetxController {
 
       Uint8List renderingImage = await ComputeUtil.handle(
         param: image,
-        processingFunction: (data) {
-          return Uint8List.fromList(img.encodeJpg(data));
-        },
+        processingFunction: (value) => img.encodeJpg(value),
       );
 
       tempList[index] = tempList[index].copyWith(
@@ -986,6 +1047,8 @@ class ProcessingImagesController extends GetxController {
       EasyLoading.dismiss();
 
       _showSnackBar(title: '失败', message: '解混淆失败');
+
+      _logger.w(e);
     }
   }
 

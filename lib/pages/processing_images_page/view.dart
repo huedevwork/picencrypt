@@ -119,9 +119,34 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
     return Obx(() {
       if (controller.isLoading.value) {
         return Center(
-          child: Obx(() {
-            return CircularProgressIndicator(value: controller.progress.value);
-          }),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.black12,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Obx(() {
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        value: controller.progress.value,
+                      ),
+                      Text(
+                        '${(controller.progress.value * 100).toInt()}%',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  );
+                }),
+                const SizedBox(height: 5),
+                const Text('Loading...'),
+              ],
+            ),
+          ),
         );
       }
 

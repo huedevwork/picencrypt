@@ -137,7 +137,7 @@ class HomeController extends GetxController {
 
     Uint8List imageData = await ComputeUtil.handle(
       param: image,
-      processingFunction: (image) => img.encodeJpg(image),
+      processingFunction: (value) => img.encodeJpg(value),
     );
 
     EasyLoading.dismiss();
@@ -164,19 +164,24 @@ class HomeController extends GetxController {
       return;
     }
 
-    var result = await Get.defaultDialog(
-      title: '已导出日志',
-      content: Text('日志保存路径:\n$path'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(Get.context!).pop(true),
-          child: const Text('复制到剪贴板'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(Get.context!).pop(),
-          child: const Text('确定'),
-        ),
-      ],
+    var result = await showDialog(
+      context: Get.context!,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text('已导出日志'),
+          content: Text('日志保存路径:\n$path'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(Get.context!).pop(true),
+              child: const Text('复制到剪贴板'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(Get.context!).pop(),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
     );
 
     if (result == true) {
@@ -375,8 +380,8 @@ class HomeController extends GetxController {
         return;
       }
 
-      bool? result = await Get.defaultDialog(
-        title: '保存路径',
+      Widget dialog = AlertDialog(
+        title: const Text('保存路径'),
         content: Text(imagePath),
         actions: [
           TextButton(
@@ -384,6 +389,23 @@ class HomeController extends GetxController {
             child: const Text('复制到剪贴板'),
           ),
         ],
+      );
+      if (Platform.isIOS) {
+        dialog = CupertinoAlertDialog(
+          title: const Text('保存路径'),
+          content: Text(imagePath),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(Get.context!).pop(true),
+              child: const Text('复制到剪贴板'),
+            ),
+          ],
+        );
+      }
+
+      bool? result = await showDialog<bool>(
+        context: Get.context!,
+        builder: (_) => dialog,
       );
 
       if (result == true) {
@@ -661,6 +683,8 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
       
       _showSnackBar(title: '失败', message: '混淆失败');
+
+      _logger.w(e);
     }
   }
 
@@ -681,6 +705,8 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
       
       _showSnackBar(title: '失败', message: '解混淆失败');
+
+      _logger.w(e);
     }
   }
 
@@ -701,6 +727,8 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
 
       _showSnackBar(title: '失败', message: '混淆失败');
+
+      _logger.w(e);
     }
   }
 
@@ -721,6 +749,8 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
 
       _showSnackBar(title: '失败', message: '解混淆失败');
+
+      _logger.w(e);
     }
   }
 
@@ -741,6 +771,8 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
 
       _showSnackBar(title: '失败', message: '混淆失败');
+
+      _logger.w(e);
     }
   }
 
@@ -761,6 +793,8 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
 
       _showSnackBar(title: '失败', message: '解混淆失败');
+
+      _logger.w(e);
     }
   }
 
@@ -781,6 +815,8 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
 
       _showSnackBar(title: '失败', message: '混淆失败');
+
+      _logger.w(e);
     }
   }
 
@@ -801,6 +837,8 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
 
       _showSnackBar(title: '失败', message: '解混淆失败');
+
+      _logger.w(e);
     }
   }
 
@@ -821,6 +859,8 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
 
       _showSnackBar(title: '失败', message: '混淆失败');
+
+      _logger.w(e);
     }
   }
 
@@ -841,6 +881,8 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
 
       _showSnackBar(title: '失败', message: '解混淆失败');
+
+      _logger.w(e);
     }
   }
 
@@ -860,6 +902,8 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
 
       _showSnackBar(title: '失败', message: '混淆失败');
+
+      _logger.w(e);
     }
   }
 
@@ -880,6 +924,8 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
 
       _showSnackBar(title: '失败', message: '解混淆失败');
+
+      _logger.w(e);
     }
   }
 }
