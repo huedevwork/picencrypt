@@ -172,9 +172,14 @@ class HomePage extends GetView<HomeController> {
                         }),
                         const SizedBox(height: 10),
 
-                        TransformActionWidgetWrap(
-                          onTap: controller.onTransformAction,
-                        ),
+                        Obx(() {
+                          if (controller.uiImage.value == null) {
+                            return const SizedBox();
+                          }
+                          return TransformActionWidgetWrap(
+                            onTap: controller.onTransformAction,
+                          );
+                        }),
                         const SizedBox(height: 10),
                       ],
                     ),
@@ -264,9 +269,14 @@ class HomePage extends GetView<HomeController> {
             }),
             const SizedBox(height: 10),
 
-            TransformActionWidgetWrap(
-              onTap: controller.onTransformAction,
-            ),
+            Obx(() {
+              if (controller.uiImage.value == null) {
+                return const SizedBox();
+              }
+              return TransformActionWidgetWrap(
+                onTap: controller.onTransformAction,
+              );
+            }),
             const SizedBox(height: 10),
 
             /// 图片显示
