@@ -41,7 +41,7 @@ clean_build_cache() {
 # 构建 APK
 build_apk() {
     echo "开始构建 APK ..."
-    fvm flutter build apk
+    fvm flutter build apk --release
     if [ $? -ne 0 ]; then
         echo "构建 APK 失败"
         exit 1
@@ -56,7 +56,7 @@ build_apk() {
 # 打包 iOS 应用（不使用签名）
 build_ios_app() {
     echo "开始构建 iOS 应用（不使用签名）..."
-    fvm flutter build ios --no-codesign
+    fvm flutter build ios --release --no-codesign
     if [ $? -ne 0 ]; then
         echo "构建 iOS 应用失败"
         exit 1
@@ -71,7 +71,7 @@ package_ios_to_ipa() {
         exit 1
     fi
     APP_NAME=$(basename "$APP_FILE" .app)
-    IPA_NAME="apple-${APP_NAME}-${VERSION}-release-ios.ipa"
+    IPA_NAME="apple-picencrypt-${VERSION}-ios-arm64.ipa"
     IPA_PATH="$PRODUCTS_DIR/$IPA_NAME"
     TEMP_DIR="$PRODUCTS_DIR/temp_payload"
 
@@ -125,18 +125,18 @@ generate_dmg() {
         exit 1
     fi
     APP_NAME=$(basename "$APP_FILE" .app)
-    DMG_NAME="apple-${APP_NAME}-${VERSION}-release-macos-arm64.dmg"
+    DMG_NAME="apple-${APP_NAME}-${VERSION}-macos-arm64.dmg"
     DMG_PATH="$PRODUCTS_DIR/$DMG_NAME"
     echo "开始生成 DMG 文件: $DMG_NAME"
     create-dmg \
-        --volname "${APP_NAME} 安装器" \
-        --background "$PROJECT_ROOT/build_script/installer_background.png" \
-        --window-pos 200 120 \
-        --window-size 800 450 \
+        --volname "${APP_NAME} Installer" \
+        --background "$PROJECT_ROOT/build_script/bg.svg" \
+        --window-pos 400 200 \
+        --window-size 660 400 \
         --icon-size 100 \
-        --icon "${APP_NAME}.app" 240 190 \
+        --icon "${APP_NAME}.app" 160 185 \
         --hide-extension "${APP_NAME}.app" \
-        --app-drop-link 550 190 \
+        --app-drop-link 500 185 \
         "$DMG_PATH" \
         "$PROJECT_ROOT/build/macos/Build/Products/Release"
     if [ $? -ne 0 ]; then
