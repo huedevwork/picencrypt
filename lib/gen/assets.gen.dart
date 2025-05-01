@@ -12,26 +12,36 @@ import 'package:flutter/widgets.dart';
 class $AssetsImagesGen {
   const $AssetsImagesGen();
 
+  /// File path: assets/images/flip_horizontal.svg
+  String get flipHorizontal => 'assets/images/flip_horizontal.svg';
+
+  /// File path: assets/images/flip_vertical.svg
+  String get flipVertical => 'assets/images/flip_vertical.svg';
+
   /// File path: assets/images/github-mark-white.png
   AssetGenImage get githubMarkWhite =>
       const AssetGenImage('assets/images/github-mark-white.png');
 
+  /// File path: assets/images/rotate_clockwise_90.svg
+  String get rotateClockwise90 => 'assets/images/rotate_clockwise_90.svg';
+
   /// List of all assets
-  List<AssetGenImage> get values => [githubMarkWhite];
+  List<dynamic> get values => [
+    flipHorizontal,
+    flipVertical,
+    githubMarkWhite,
+    rotateClockwise90,
+  ];
 }
 
 class Assets {
-  Assets._();
+  const Assets._();
 
   static const $AssetsImagesGen images = $AssetsImagesGen();
 }
 
 class AssetGenImage {
-  const AssetGenImage(
-    this._assetName, {
-    this.size,
-    this.flavors = const {},
-  });
+  const AssetGenImage(this._assetName, {this.size, this.flavors = const {}});
 
   final String _assetName;
 
@@ -59,7 +69,7 @@ class AssetGenImage {
     bool gaplessPlayback = true,
     bool isAntiAlias = false,
     String? package,
-    FilterQuality filterQuality = FilterQuality.low,
+    FilterQuality filterQuality = FilterQuality.medium,
     int? cacheWidth,
     int? cacheHeight,
   }) {
@@ -91,15 +101,8 @@ class AssetGenImage {
     );
   }
 
-  ImageProvider provider({
-    AssetBundle? bundle,
-    String? package,
-  }) {
-    return AssetImage(
-      _assetName,
-      bundle: bundle,
-      package: package,
-    );
+  ImageProvider provider({AssetBundle? bundle, String? package}) {
+    return AssetImage(_assetName, bundle: bundle, package: package);
   }
 
   String get path => _assetName;

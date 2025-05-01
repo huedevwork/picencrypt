@@ -3,10 +3,12 @@ import 'dart:math' as math;
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:picencrypt/common/transform_action_type.dart';
 import 'package:picencrypt/pages/home_page/bean/encrypt_type.dart';
 import 'package:picencrypt/widgets/encrypt_button_widget.dart';
 import 'package:picencrypt/widgets/encrypt_input_widget.dart';
 import 'package:picencrypt/widgets/encrypt_mode_widget.dart';
+import 'package:picencrypt/widgets/transform_action_widget.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
 
 import 'controller.dart';
@@ -242,6 +244,11 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
                     onDecrypt: controller.onAllDecrypt,
                     onReset: controller.onAllReset,
                   ),
+                  const SizedBox(height: 10),
+
+                  TransformActionWidgetWrap(
+                    onTap: controller.onTransformAction,
+                  ),
                 ],
               ),
             ),
@@ -281,6 +288,9 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
                       onOpenImage: () {
                         controller.onOpenExamineImage(index);
                       },
+                      onTransformAction: (type) {
+                        controller.onChildTransformAction(type, index);
+                      },
                     );
                   },
                 ),
@@ -307,7 +317,7 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
                 snap: true,
                 stretch: true,
                 floating: true,
-                expandedHeight: 180.0,
+                expandedHeight: 220.0,
                 flexibleSpace: Material(
                   color: Theme.of(Get.context!).scaffoldBackgroundColor,
                   child: FlexibleSpaceBar(
@@ -339,6 +349,15 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
                           onEncrypt: controller.onAllEncrypt,
                           onDecrypt: controller.onAllDecrypt,
                           onReset: controller.onAllReset,
+                        ),
+                        const SizedBox(height: 10),
+
+                        Expanded(
+                          child: Center(
+                            child: TransformActionWidgetWrap(
+                              onTap: controller.onTransformAction,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -377,6 +396,9 @@ class ProcessingImagesPage extends GetView<ProcessingImagesController> {
                         onOpenImage: () {
                           controller.onOpenExamineImage(index);
                         },
+                        onTransformAction: (type) {
+                          controller.onChildTransformAction(type, index);
+                        },
                       ),
                     );
                   },
@@ -402,6 +424,7 @@ class ImageView extends StatelessWidget {
     required this.onReset,
     required this.onSave,
     this.onOpenImage,
+    this.onTransformAction,
   });
 
   final EncryptImageBean item;
@@ -412,6 +435,7 @@ class ImageView extends StatelessWidget {
   final VoidCallback onReset;
   final VoidCallback onSave;
   final VoidCallback? onOpenImage;
+  final ValueChanged<TransformActionType>? onTransformAction;
 
   @override
   Widget build(BuildContext context) {
@@ -455,127 +479,132 @@ class ImageView extends StatelessWidget {
     }
 
     Widget controlView() {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          OutlinedButton(
-            onPressed: onSelectAMode,
-            style: OutlinedButton.styleFrom(
-              fixedSize: const Size.fromWidth(110),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(5),
+      const double maxWidth = 110;
+      return SizedBox(
+        width: maxWidth,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            OutlinedButton(
+              onPressed: onSelectAMode,
+              style: OutlinedButton.styleFrom(
+                fixedSize: const Size.fromWidth(maxWidth),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const AutoSizeText(
+                    '模式选择',
+                    style: TextStyle(color: Colors.black),
+                    maxLines: 1,
+                  ),
+                  AutoSizeText(
+                    '模式: ${item.encryptType.value}',
+                    style: const TextStyle(color: Colors.black),
+                    maxLines: 1,
+                  ),
+                ],
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const AutoSizeText(
-                  '模式选择',
-                  style: TextStyle(color: Colors.black),
-                  maxLines: 1,
-                ),
-                AutoSizeText(
-                  '模式: ${item.encryptType.value}',
-                  style: const TextStyle(color: Colors.black),
-                  maxLines: 1,
-                ),
-              ],
-            ),
-          ),
-          IgnorePointer(
-            ignoring: item.encryptType == EncryptType.gilbert2dConfusion,
-            child: Opacity(
-              opacity: item.encryptType == EncryptType.gilbert2dConfusion
-                  ? 0.3
-                  : 1.0,
-              child: OutlinedButton(
-                onPressed: onSetKey,
-                style: OutlinedButton.styleFrom(
-                  fixedSize: const Size.fromWidth(110),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5),
+            IgnorePointer(
+              ignoring: item.encryptType == EncryptType.gilbert2dConfusion,
+              child: Opacity(
+                opacity: item.encryptType == EncryptType.gilbert2dConfusion
+                    ? 0.3
+                    : 1.0,
+                child: OutlinedButton(
+                  onPressed: onSetKey,
+                  style: OutlinedButton.styleFrom(
+                    fixedSize: const Size.fromWidth(maxWidth),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const AutoSizeText(
+                        '密钥',
+                        style: TextStyle(color: Colors.black),
+                        maxLines: 1,
+                      ),
+                      AutoSizeText(
+                        '${[
+                          EncryptType.picEncryptRowConfusion,
+                          EncryptType.picEncryptRowColConfusion
+                        ].contains(item.encryptType) ? item.floatRangeKey : item.anyStrKey}',
+                        style: const TextStyle(color: Colors.black),
+                        maxLines: 1,
+                      ),
+                    ],
                   ),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const AutoSizeText(
-                      '密钥',
-                      style: TextStyle(color: Colors.black),
-                      maxLines: 1,
-                    ),
-                    AutoSizeText(
-                      '${[
-                        EncryptType.picEncryptRowConfusion,
-                        EncryptType.picEncryptRowColConfusion
-                      ].contains(item.encryptType) ? item.floatRangeKey : item.anyStrKey}',
-                      style: const TextStyle(color: Colors.black),
-                      maxLines: 1,
-                    ),
-                  ],
+              ),
+            ),
+            OutlinedButton(
+              onPressed: onEncrypt,
+              style: OutlinedButton.styleFrom(
+                fixedSize: const Size.fromWidth(maxWidth),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5),
                 ),
               ),
-            ),
-          ),
-          OutlinedButton(
-            onPressed: onEncrypt,
-            style: OutlinedButton.styleFrom(
-              fixedSize: const Size.fromWidth(110),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(5),
+              child: const AutoSizeText(
+                '混淆',
+                style: TextStyle(color: Colors.black),
+                maxLines: 1,
               ),
             ),
-            child: const AutoSizeText(
-              '混淆',
-              style: TextStyle(color: Colors.black),
-              maxLines: 1,
-            ),
-          ),
-          OutlinedButton(
-            onPressed: onDecrypt,
-            style: OutlinedButton.styleFrom(
-              fixedSize: const Size.fromWidth(110),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(5),
+            OutlinedButton(
+              onPressed: onDecrypt,
+              style: OutlinedButton.styleFrom(
+                fixedSize: const Size.fromWidth(maxWidth),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              ),
+              child: const AutoSizeText(
+                '解混淆',
+                style: TextStyle(color: Colors.black),
+                maxLines: 1,
               ),
             ),
-            child: const AutoSizeText(
-              '解混淆',
-              style: TextStyle(color: Colors.black),
-              maxLines: 1,
-            ),
-          ),
-          OutlinedButton(
-            onPressed: onReset,
-            style: OutlinedButton.styleFrom(
-              fixedSize: const Size.fromWidth(110),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(5),
+            OutlinedButton(
+              onPressed: onReset,
+              style: OutlinedButton.styleFrom(
+                fixedSize: const Size.fromWidth(maxWidth),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              ),
+              child: const AutoSizeText(
+                '还原',
+                style: TextStyle(color: Colors.black),
+                maxLines: 1,
               ),
             ),
-            child: const AutoSizeText(
-              '还原',
-              style: TextStyle(color: Colors.black),
-              maxLines: 1,
-            ),
-          ),
-          OutlinedButton(
-            onPressed: onSave,
-            style: OutlinedButton.styleFrom(
-              fixedSize: const Size.fromWidth(110),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(5),
+            OutlinedButton(
+              onPressed: onSave,
+              style: OutlinedButton.styleFrom(
+                fixedSize: const Size.fromWidth(maxWidth),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              ),
+              child: const AutoSizeText(
+                '保存',
+                style: TextStyle(color: Colors.black),
+                maxLines: 1,
               ),
             ),
-            child: const AutoSizeText(
-              '保存',
-              style: TextStyle(color: Colors.black),
-              maxLines: 1,
-            ),
-          ),
-        ],
+            TransformActionWidget(onTap: onTransformAction),
+          ],
+        ),
       );
     }
 

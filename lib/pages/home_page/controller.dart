@@ -13,6 +13,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:picencrypt/common/local_storage.dart';
+import 'package:picencrypt/common/transform_action_type.dart';
 import 'package:picencrypt/router/app_pages.dart';
 import 'package:picencrypt/service/application_service/open_platform_image_view.dart';
 import 'package:picencrypt/service/application_service/permission_service.dart';
@@ -23,6 +24,7 @@ import 'package:picencrypt/utils/create_file_name_util.dart';
 import 'package:picencrypt/utils/file_type_check_util.dart';
 import 'package:picencrypt/utils/logger_utils.dart';
 import 'package:picencrypt/utils/pic_encrypt_util.dart';
+import 'package:picencrypt/utils/transform_util.dart';
 import 'package:picencrypt/widgets/process_selection_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vision_gallery_saver/vision_gallery_saver.dart';
@@ -68,9 +70,12 @@ class HomeController extends GetxController {
 
   Rx<PackageInfo?> packageInfo = Rx<PackageInfo?>(null);
 
+  RxBool isMobileDevices = false.obs;
+
   @override
   void onInit() {
-    super.onInit();
+    isMobileDevices.value = (Platform.isAndroid || Platform.isIOS);
+
     _getVersionInfo();
 
     // try {
@@ -78,6 +83,8 @@ class HomeController extends GetxController {
     // } catch(e, s) {
     //   _logger.e('Log test', error: e, stackTrace: s);
     // }
+
+    super.onInit();
   }
 
   Future<void> _getVersionInfo() async {
@@ -142,7 +149,7 @@ class HomeController extends GetxController {
 
     EasyLoading.dismiss();
 
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (isMobileDevices.value) {
       Get.toNamed(AppRoutes.photoView, arguments: imageData);
     } else {
       openPlatformImageService(imageData);
@@ -150,7 +157,7 @@ class HomeController extends GetxController {
   }
 
   void onJumpGithub() {
-    Uri uri = Uri.parse('https://github.com/huedevwork/picencrypt');
+    Uri uri = Uri.parse('https://github.com/huedevwork/picencrypt.git');
     launchUrl(uri);
   }
 
@@ -254,7 +261,7 @@ class HomeController extends GetxController {
   }
 
   Future<void> onSaveImage() async {
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (isMobileDevices.value) {
       Permission permission;
       if (Platform.isAndroid) {
         final androidInfo = await DeviceInfoPlugin().androidInfo;
@@ -424,7 +431,7 @@ class HomeController extends GetxController {
   }
 
   Future<void> onSelectImage() async {
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (isMobileDevices.value) {
       Permission permission;
 
       if (Platform.isAndroid) {
@@ -462,7 +469,7 @@ class HomeController extends GetxController {
     if (type == ProcessSelectionType.single) {
       try {
         String? path;
-        if (Platform.isAndroid || Platform.isIOS) {
+        if (isMobileDevices.value) {
           path = await singleFileServices();
         } else {
           final downloadsDir = await getDownloadsDirectory();
@@ -508,7 +515,7 @@ class HomeController extends GetxController {
 
         Uint8List bytes = await File(path).readAsBytes();
 
-        if (Platform.isAndroid || Platform.isIOS) {
+        if (isMobileDevices.value) {
           CacheManagerUtil.clearCache();
         }
 
@@ -681,7 +688,7 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
     } catch (e) {
       EasyLoading.dismiss();
-      
+
       _showSnackBar(title: '失败', message: '混淆失败');
 
       _logger.w(e);
@@ -703,7 +710,7 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
     } catch (e) {
       EasyLoading.dismiss();
-      
+
       _showSnackBar(title: '失败', message: '解混淆失败');
 
       _logger.w(e);
@@ -924,6 +931,45 @@ class HomeController extends GetxController {
       EasyLoading.dismiss();
 
       _showSnackBar(title: '失败', message: '解混淆失败');
+
+      _logger.w(e);
+    }
+  }
+
+  Future<void> onTransformAction(TransformActionType type) async {
+    await EasyLoading.show(status: 'Loading...');
+
+    try {
+      img.Image newImage;
+
+      switch (type) {
+        case TransformActionType.flipHorizontal:
+          newImage = await ComputeUtil.handle(
+            param: uiImage.value!,
+            processingFunction: (value) => TransformUtil.flipHorizontal(value),
+          );
+        case TransformActionType.flipVertical:
+          newImage = await ComputeUtil.handle(
+            param: uiImage.value!,
+            processingFunction: (value) => TransformUtil.flipVertical(value),
+          );
+        case TransformActionType.rotateClockwise90:
+          newImage = await ComputeUtil.handle(
+            param: uiImage.value!,
+            processingFunction: (value) => TransformUtil.rotate(value),
+          );
+      }
+
+      uiImage.value = newImage;
+
+      EasyLoading.dismiss();
+    } catch (e) {
+      EasyLoading.dismiss();
+
+      _showSnackBar(
+        title: '${type.typeName}失败',
+        message: '${type.typeName}，操作失败',
+      );
 
       _logger.w(e);
     }

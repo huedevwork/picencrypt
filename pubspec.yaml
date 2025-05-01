@@ -1,11 +1,11 @@
 name: picencrypt
 description: "PicEncrypt flutter project"
-repository: https://github.com/huedevwork/picencrypt
+repository: https://github.com/huedevwork/picencrypt.git
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 # 1.0.0 versionName. 1 versionCode
-version: 1.0.5+3
+version: 1.0.6+4
 
 environment:
   sdk: ^3.5.4
@@ -38,9 +38,10 @@ dependencies:
   mime: any
   logger: any
   scrollview_observer: any
+  flutter_svg: any
 
   picencrypt_converter:
-    path: package/picencrypt_converter
+    path: packages/picencrypt_converter
 
 dev_dependencies:
   flutter_test:

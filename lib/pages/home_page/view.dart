@@ -5,6 +5,7 @@ import 'package:picencrypt/gen/assets.gen.dart';
 import 'package:picencrypt/widgets/encrypt_button_widget.dart';
 import 'package:picencrypt/widgets/encrypt_input_widget.dart';
 import 'package:picencrypt/widgets/encrypt_mode_widget.dart';
+import 'package:picencrypt/widgets/transform_action_widget.dart';
 import 'package:picencrypt/widgets/ui_image_view.dart';
 
 import 'controller.dart';
@@ -57,8 +58,8 @@ class HomePage extends GetView<HomeController> {
           return controller.uiImage.value == null
               ? const SizedBox()
               : Column(
-                children: [
-                  FloatingActionButton(
+                  children: [
+                    FloatingActionButton(
                       heroTag: 'onSaveImage',
                       onPressed: controller.onSaveImage,
                       tooltip: '保存图片',
@@ -77,28 +78,28 @@ class HomePage extends GetView<HomeController> {
                         ],
                       ),
                     ),
-                  const SizedBox(height: 10),
-                  FloatingActionButton(
-                    heroTag: 'onClear',
-                    onPressed: controller.onClear,
-                    tooltip: '清除',
-                    backgroundColor: Colors.white,
-                    enableFeedback: true,
-                    child: const Column(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.delete_forever),
-                        AutoSizeText(
-                          '清除',
-                          style: TextStyle(color: Colors.black, fontSize: 12),
-                          maxLines: 1,
-                        ),
-                      ],
+                    const SizedBox(height: 10),
+                    FloatingActionButton(
+                      heroTag: 'onClear',
+                      onPressed: controller.onClear,
+                      tooltip: '清除',
+                      backgroundColor: Colors.white,
+                      enableFeedback: true,
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.delete_forever),
+                          AutoSizeText(
+                            '清除',
+                            style: TextStyle(color: Colors.black, fontSize: 12),
+                            maxLines: 1,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              );
+                  ],
+                );
         }),
       ],
     );
@@ -169,6 +170,12 @@ class HomePage extends GetView<HomeController> {
                             onReset: controller.onReset,
                           );
                         }),
+                        const SizedBox(height: 10),
+
+                        TransformActionWidgetWrap(
+                          onTap: controller.onTransformAction,
+                        ),
+                        const SizedBox(height: 10),
                       ],
                     ),
                   ),
@@ -255,6 +262,11 @@ class HomePage extends GetView<HomeController> {
                 onReset: controller.onReset,
               );
             }),
+            const SizedBox(height: 10),
+
+            TransformActionWidgetWrap(
+              onTap: controller.onTransformAction,
+            ),
             const SizedBox(height: 10),
 
             /// 图片显示

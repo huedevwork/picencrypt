@@ -13,8 +13,8 @@ class ExamineImagePage extends GetView<ExamineImageController> {
       body: Stack(
         children: [
           PhotoView(
-            minScale: PhotoViewComputedScale.contained * 0.9,
-            maxScale: PhotoViewComputedScale.covered * 3,
+            minScale: PhotoViewComputedScale.contained,
+            maxScale: PhotoViewComputedScale.covered * 4,
             initialScale: PhotoViewComputedScale.contained,
             imageProvider: MemoryImage(controller.imageData),
           ),

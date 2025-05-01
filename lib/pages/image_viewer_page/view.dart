@@ -22,8 +22,8 @@ class ImageViewerPage extends GetView<ImageViewerController> {
                 itemBuilder: (_, index) {
                   var data = controller.imageBytes[index];
                   return PhotoView(
-                    minScale: PhotoViewComputedScale.contained * 0.9,
-                    maxScale: PhotoViewComputedScale.covered * 3,
+                    minScale: PhotoViewComputedScale.contained,
+                    maxScale: PhotoViewComputedScale.covered * 4,
                     initialScale: PhotoViewComputedScale.contained,
                     imageProvider: MemoryImage(data),
                   );

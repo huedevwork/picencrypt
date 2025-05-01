@@ -10,14 +10,6 @@ import 'app.dart';
 Future<void> main() async {
   await GetStorage.init();
 
-  // if (Platform.isAndroid || Platform.isIOS) {
-  //   // 限制竖屏
-  //   SystemChrome.setPreferredOrientations([
-  //     DeviceOrientation.portraitUp,
-  //     DeviceOrientation.portraitDown,
-  //   ]);
-  // }
-
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     WidgetsFlutterBinding.ensureInitialized();
     await windowManager.ensureInitialized();
@@ -32,16 +24,8 @@ Future<void> main() async {
       title: 'PicEncrypt',
     );
     windowManager.waitUntilReadyToShow(windowOptions, () async {
-      // 显示窗口
       await windowManager.show();
-      // 聚焦窗口
       await windowManager.focus();
-      // // 设置窗口缩放
-      // await windowManager.setResizable(false);
-      // // 设置窗口缩放宽高比
-      // await windowManager.setAspectRatio(1.3);
-      // // 设置窗口是否支持阴影
-      // await windowManager.setHasShadow(true);
     });
   }
 

@@ -13,6 +13,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:picencrypt/common/local_storage.dart';
+import 'package:picencrypt/common/transform_action_type.dart';
 import 'package:picencrypt/pages/home_page/bean/encrypt_type.dart';
 import 'package:picencrypt/pages/home_page/bean/input_format_bean.dart';
 import 'package:picencrypt/router/app_pages.dart';
@@ -22,6 +23,7 @@ import 'package:picencrypt/utils/cache_manager_util.dart';
 import 'package:picencrypt/utils/compute_util.dart';
 import 'package:picencrypt/utils/create_file_name_util.dart';
 import 'package:picencrypt/utils/logger_utils.dart';
+import 'package:picencrypt/utils/transform_util.dart';
 import 'package:picencrypt/widgets/dialog_mode_select.dart';
 import 'package:picencrypt/widgets/dialog_textField.dart';
 import 'package:picencrypt_converter/picencrypt_converter.dart';
@@ -74,7 +76,7 @@ class ProcessingImagesController extends GetxController {
 
   @override
   void onInit() {
-    isMobileDevices.value = (Platform.isAndroid || Platform.isAndroid);
+    isMobileDevices.value = (Platform.isAndroid || Platform.isIOS);
 
     observerController = Rx(ListObserverController(
       controller: scrollController.value,
@@ -153,7 +155,7 @@ class ProcessingImagesController extends GetxController {
 
       isLoading.value = false;
 
-      if (Platform.isAndroid || Platform.isIOS) {
+      if (isMobileDevices.value) {
         CacheManagerUtil.clearCache();
       }
     } catch (e, s) {
@@ -327,7 +329,7 @@ class ProcessingImagesController extends GetxController {
   }
 
   Future<void> onAllSave() async {
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (isMobileDevices.value) {
       Permission permission;
       if (Platform.isAndroid) {
         final androidInfo = await DeviceInfoPlugin().androidInfo;
@@ -386,7 +388,7 @@ class ProcessingImagesController extends GetxController {
 
             String? result = await _getSAFPath();
             if (result == null) {
-              _onCustomSnackBar(content: const Text('已取消保存路径选择'));
+              _showSnackBar(title: '取消保存', message: '已取消保存路径选择');
               return;
             }
 
@@ -397,7 +399,7 @@ class ProcessingImagesController extends GetxController {
         } else {
           String? result = await _getSAFPath();
           if (result == null) {
-            _onCustomSnackBar(content: const Text('已取消保存路径选择'));
+            _showSnackBar(title: '取消保存', message: '已取消保存路径选择');
             return;
           }
 
@@ -422,7 +424,7 @@ class ProcessingImagesController extends GetxController {
     }
 
     if (imagePath == null) {
-      _onCustomSnackBar(content: const Text('取消保存'));
+      _showSnackBar(title: '取消', message: '取消保存');
       return;
     }
 
@@ -470,7 +472,7 @@ class ProcessingImagesController extends GetxController {
 
       EasyLoading.dismiss();
 
-      _onCustomSnackBar(content: const Text('保存成功'));
+      _showSnackBar(title: '成功', message: '保存成功');
 
       if (failedList.isEmpty) {
         return;
@@ -739,7 +741,7 @@ class ProcessingImagesController extends GetxController {
   }
 
   Future<void> onChildSave(int index) async {
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (isMobileDevices.value) {
       Permission permission;
       if (Platform.isAndroid) {
         final androidInfo = await DeviceInfoPlugin().androidInfo;
@@ -798,7 +800,7 @@ class ProcessingImagesController extends GetxController {
 
             String? result = await _getSAFPath();
             if (result == null) {
-              _onCustomSnackBar(content: const Text('已取消保存路径选择'));
+              _showSnackBar(title: '取消保存', message: '已取消保存路径选择');
               return;
             }
 
@@ -809,7 +811,7 @@ class ProcessingImagesController extends GetxController {
         } else {
           String? result = await _getSAFPath();
           if (result == null) {
-            _onCustomSnackBar(content: const Text('已取消保存路径选择'));
+            _showSnackBar(title: '取消保存', message: '已取消保存路径选择');
             return;
           }
 
@@ -834,7 +836,7 @@ class ProcessingImagesController extends GetxController {
     }
 
     if (imagePath == null) {
-      _onCustomSnackBar(content: const Text('取消保存'));
+      _showSnackBar(title: '取消', message: '取消保存');
       return;
     }
 
@@ -879,12 +881,12 @@ class ProcessingImagesController extends GetxController {
         // 复制文件路径到剪贴板
         await Clipboard.setData(ClipboardData(text: imagePath));
 
-        _onCustomSnackBar(content: const Text('已复制到剪贴板'));
+        _showSnackBar(title: '复制', message: '已复制到剪贴板');
       }
     } catch (e, s) {
       EasyLoading.dismiss();
 
-      _onCustomSnackBar(content: const Text('保存文件失败'));
+      _showSnackBar(title: '失败', message: '保存文件失败');
 
       _logger.e('保存失败', error: e, stackTrace: s);
     }
@@ -1068,13 +1070,117 @@ class ProcessingImagesController extends GetxController {
     }
   }
 
-  void _onCustomSnackBar({
-    required Widget content,
-    Duration duration = const Duration(seconds: 5),
-  }) {
-    ScaffoldMessenger.of(Get.context!).showSnackBar(SnackBar(
-      content: content,
-      duration: duration,
-    ));
+  Future<void> onTransformAction(TransformActionType type) async {
+    var start = DateTime.now();
+    await EasyLoading.show(status: 'Loading...');
+
+    try {
+      List<(TransformActionType, EncryptImageBean)> tempList = uiImages.value.map((e) {
+        return (type, e);
+      }).toList();
+
+      List<EncryptImageBean> results = await ComputeUtil.handleList(
+        progressCallback: (value) {
+          EasyLoading.showProgress(value, status: '${(value * 100).toInt()}%');
+        },
+        param: tempList,
+        processingFunction: (value) {
+          try {
+            TransformActionType type = value.$1;
+            EncryptImageBean item = value.$2;
+
+            img.Image newImage;
+            switch (type) {
+              case TransformActionType.flipHorizontal:
+                newImage = TransformUtil.flipHorizontal(item.image);
+              case TransformActionType.flipVertical:
+                newImage = TransformUtil.flipVertical(item.image);
+              case TransformActionType.rotateClockwise90:
+                newImage = TransformUtil.rotate(item.image);
+            }
+
+            return item.copyWith(
+              image: newImage,
+              renderingData: img.encodeJpg(newImage),
+            );
+          } catch (e) {
+            rethrow;
+          }
+        },
+      );
+
+      String message = '${type.typeName}耗时: ${DateTime.now().difference(start)}';
+      debugPrint(message);
+      _showSnackBar(title: type.typeName, message: message);
+
+      uiImages.value = List.from(results);
+
+      EasyLoading.dismiss();
+    } catch (e) {
+      EasyLoading.dismiss();
+
+      _showSnackBar(
+        title: '${type.typeName}失败',
+        message: '${type.typeName}，操作失败',
+      );
+
+      _logger.w(e);
+    }
+  }
+
+  Future<void> onChildTransformAction(
+    TransformActionType type,
+    int index,
+  ) async {
+    EncryptImageBean item = uiImages.value[index];
+
+    await EasyLoading.show(status: 'Loading...');
+
+    try {
+      img.Image newImage;
+
+      switch (type) {
+        case TransformActionType.flipHorizontal:
+          newImage = await ComputeUtil.handle(
+            param: item.image,
+            processingFunction: (value) => TransformUtil.flipHorizontal(value),
+          );
+        case TransformActionType.flipVertical:
+          newImage = await ComputeUtil.handle(
+            param: item.image,
+            processingFunction: (value) => TransformUtil.flipVertical(value),
+          );
+        case TransformActionType.rotateClockwise90:
+          newImage = await ComputeUtil.handle(
+            param: item.image,
+            processingFunction: (value) => TransformUtil.rotate(value),
+          );
+      }
+
+      List<EncryptImageBean> tempList = List.from(uiImages.value);
+
+      Uint8List renderingImage = await ComputeUtil.handle(
+        param: newImage,
+        processingFunction: (value) => img.encodeJpg(value),
+      );
+
+      tempList[index] = tempList[index].copyWith(
+        image: newImage,
+        renderingData: renderingImage,
+      );
+
+      EasyLoading.dismiss();
+
+      uiImages.value = List.from(tempList);
+    } catch (e) {
+      EasyLoading.dismiss();
+
+      _showSnackBar(
+        title: '${type.typeName}失败',
+        message: '${type.typeName}，操作失败',
+      );
+
+      _logger.w(e);
+    }
   }
 }

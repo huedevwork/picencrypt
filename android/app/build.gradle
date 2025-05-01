@@ -84,8 +84,7 @@ android {
             if (abiName == null) {
                 abiName = "universal"
             }
-            def buildType = variant.buildType.name
-            apkVariantOutput.outputFileName = "android-${appName}-${versionName}-${buildType}-${abiName}.apk"
+            apkVariantOutput.outputFileName = "android-${appName}-${versionName}-${abiName}.apk"
         }
     }
 }
